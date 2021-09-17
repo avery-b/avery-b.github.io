@@ -17,3 +17,10 @@ iframe {
   margin-right: auto;
   width: 80%;
 }
+
+.centerGif {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  width: 40%;
+}
