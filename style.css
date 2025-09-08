@@ -6,6 +6,11 @@ body {
     color: #333;
 }
 
+/* Font size scaling on different screens */
+html {
+  font-size: clamp(16px, 2vw, 20px);
+}
+
 
 /* Link Color */
 a:link {
