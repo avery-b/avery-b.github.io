@@ -14,6 +14,23 @@ a:link {
   text-decoration: none;
 }
 
+/* When the screen is 768px wide or less (tablet/phone sizes) */
+@media (max-width: 768px) {
+  .left-pane {
+    display: none;   /* Hide the image */
+  }
+
+  .right-pane {
+    flex: 1;         /* Take full width */
+    width: 100vw;    /* Ensure it spans the screen */
+    height: auto;    /* Allow content height */
+  }
+
+  .container {
+    flex-direction: column; /* Stack layout just in case */
+  }
+}
+
 /* Main two-column container */
 .container {
     display: flex;
