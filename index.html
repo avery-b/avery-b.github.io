@@ -12,18 +12,67 @@
 <body>
 
     <div class="container">
-        <!-- Left Half: Image -->
         <div class="left-pane">
-            <!-- IMPORTANT: Replace 'profile.jpg' with the name of your image file -->
-            <img src="images/imm003_3A.jpg" alt="A photo of me" class="profile-image">
+            <div class="mosaic" aria-label="Image mosaic">
+            <!-- Priority order: top to bottom -->
+
+            <a class="tile tile-1" target="_blank" rel="noopener noreferrer" aria-label="headshot">
+                <img src="images/avery_headshot.jpg" alt="Headshot portrait of Avery">
+            </a>
+
+            <a class="tile tile-2" href="https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.14564" target="_blank" rel="noopener noreferrer" aria-label="Snowmobile and bird song study">
+                <img src="images/snowmobile.png" alt="Snowmobile and bird song study">
+            </a>
+
+            <a class="tile tile-3" href="https://www.nature.com/articles/s42003-026-10389-4" target="_blank" rel="noopener noreferrer" aria-label="Forest bioacoustic monitoring study">
+                <img src="images/bugg_forest.JPEG" alt="Forest bioacoustic monitoring study">
+            </a>
+
+            <a class="tile tile-4" href="https://direct.mit.edu/leon/article-abstract/doi/10.1162/LEON.a.2652/134685/Simulated-Environments-and-Environmental?redirectedFrom=fulltext" target="_blank" rel="noopener noreferrer" aria-label="Bioacoustics art study">
+                <img src="images/audio_screenshot.png" alt="Bioacoustics art study">
+            </a>
+
+            <a class="tile tile-5" href="https://agriculturedashboard.stanford.edu/" target="_blank" rel="noopener noreferrer" aria-label="Industrial Animal Agriculture Dashboard">
+                <img src="images/dashboard_screenshot.png" alt="Industrial Animal Agriculture Dashboard">
+            </a>
+
+            <a class="tile tile-6" href="https://zenodo.org/records/15646188" target="_blank" rel="noopener noreferrer" aria-label="Bioacoustics Thesis">
+                <img src="images/umap.png" alt="UMAP audio embedding visualization">
+            </a>
+
+            <a class="tile tile-7" href="https://zenodo.org/records/18476174" target="_blank" rel="noopener noreferrer" aria-label="Heat health Paper">
+                <img src="images/heat_health.png" alt="heat exposure and health impacts">
+            </a>
+
+            <a class="tile tile-8" href="https://www.nature.com/articles/s42003-026-10389-4" target="_blank" rel="noopener noreferrer" aria-label="Open vocalization probability plot">
+                <img src="images/vocalization_prob.png" alt="Map of avian vocalization probability">
+            </a>
+
+            <a class="tile tile-9" href="https://law.stanford.edu/wp-content/uploads/2026/02/Robertson-et-al_CAF-Reporting-and-Permitting-Under-the-PCA_final.pdf" target="_blank" rel="noopener noreferrer" aria-label="Open manure accounting figure">
+                <img src="images/manure_accounting.png" alt="Unaccounted manure at California dairies">
+            </a>
+
+            <a class="tile tile-10" href="https://agriculturedashboard.stanford.edu/" target="_blank" rel="noopener noreferrer" aria-label="Open trucking screenshot">
+                <img src="images/trucking_screenshot.png" alt="Manure trucking route map">
+            </a>
+
+            <a class="tile tile-11" href="https://aimc2023.pubpub.org/pub/soundscapes/release/1" target="_blank" rel="noopener noreferrer" aria-label="spectrogram image 1">
+                <img src="images/spectros1.png" alt="Interpolations of Audio Spectograms">
+            </a>
+
+            <a class="tile tile-12" href="https://aimc2023.pubpub.org/pub/soundscapes/release/1" target="_blank" rel="noopener noreferrer" aria-label="spectrogram image 2">
+                <img src="images/spectros2.png" alt="Interpolations of Audio Spectograms">
+            </a>
+
+            </div>
         </div>
 
         <!-- Right Half: Content -->
         <div class="right-pane">
             <h1>Avery Bick, PhD</h1>
-            Sustainable & Humane Food Systems Research Fellow
+            >Geospatial Data Scientist, Environmental Engineer, Ecological Artist
             <br>
-            Stanford Climate & Energy Policy Program
+            >Data Scientist with Stanford Regulation, Evaluation, and Governance Lab
             <!-- 
             <ul>
                 <li>Topics</li>
@@ -41,10 +90,22 @@
                     </ul>
             </ul>
             -->
-
-            <hr>
-
             <!-- Dropdown Section 1 -->
+            <hr>
+            <div class="dropdown">
+                <div class="dropdown-header">
+                    <h2>/ agriculture</h2>
+                    <span class="toggle-icon">+</span>
+                </div>
+                <div class="dropdown-content">
+                    <ul class="custom-list">
+                        <li><a href="https://law.stanford.edu/wp-content/uploads/2026/02/Robertson-et-al_CAF-Reporting-and-Permitting-Under-the-PCA_final.pdf" target="_blank" rel="noopener noreferrer">Missing manure at California's Dairies</a></li>
+                        <li><a href="https://agriculturedashboard.stanford.edu/" target="_blank" rel="noopener noreferrer">California industrial animal agriculture dashboard</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Dropdown Section 2 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ bioacoustics</h2>
@@ -52,7 +113,7 @@
                 </div>
                 <div class="dropdown-content">
                     <ul class="custom-list">
-                        <li><a href="https://zenodo.org/records/14254172" target="_blank" rel="noopener noreferrer">national-scale bioacoustic monitoring system</a></li>
+                        <li><a href="https://www.nature.com/articles/s42003-026-10389-4" target="_blank" rel="noopener noreferrer">national-scale bioacoustic monitoring system</a></li>
                         <li><a href="https://besjournals.onlinelibrary.wiley.com/doi/full/10.1111/1365-2664.14564" target="_blank" rel="noopener noreferrer">engine noise impacts bird calls</a></li>
                         <li><a href="https://www.pnas.org/doi/abs/10.1073/pnas.2315933121" target="_blank" rel="noopener noreferrer">passive acoustic monitoring worldwide</a></li>
                         <li><a href="https://www.nature.com/articles/s41559-023-02148-z" target="_blank" rel="noopener noreferrer">soundscapes as a biodiversity metric?</a></li>
@@ -60,7 +121,7 @@
                 </div>
             </div>
 
-            <!-- Dropdown Section 2 -->
+            <!-- Dropdown Section 3 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ climate + disaster risk</h2>
@@ -76,7 +137,7 @@
                 </div>
             </div>
 
-            <!-- Dropdown Section 3 -->
+            <!-- Dropdown Section 4 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ mapping + interactive</h2>
@@ -106,22 +167,41 @@
                 </div>
             </div>
 
-            <!-- Dropdown Section 4 -->
+            <!-- Dropdown Section 6 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ technoecology (phd thesis)</h2>
                     <span class="toggle-icon">+</span>
                 </div>
                 <div class="dropdown-content">
-                    <ul>
+                    <ul class="custom-list">
                         <a href="https://doi.org/10.5281/zenodo.15583656" target="_blank" rel="noopener noreferrer">Technoecology: Machine Learning in Bioacoustics and Ecological Art</a>
                     </ul>
                 </div>
             </div>
 
+            <!-- Dropdown Section 7 -->
+            <div class="dropdown">
+                <div class="dropdown-header">
+                    <h2>/ press</h2>
+                    <span class="toggle-icon">+</span>
+                </div>
+                <div class="dropdown-content">
+                    <ul class="custom-list">
+                        <li><a href="https://www.sfgate.com/california/article/california-farms-manure-study-22080300.php" target="_blank" rel="noopener noreferrer">SFGate - Missing Manure at California's Dairies</a></li>
+                        <li><a href="https://sentientmedia.org/ten-million-tons-of-manure-in-california-are-unaccounted-for/" target="_blank" rel="noopener noreferrer">Sentient - Unaccounted-for Manure in California</a></li>
+                        <li><a href="https://phys.org/news/2026-03-oversight-failures-california-dairies.html" target="_blank" rel="noopener noreferrer">Phys.org - Water Oversight Failures at California Dairies</a></li>
+                        <li><a href="https://insideclimatenews.org/news/25052026/usda-biogas-digester-loan-pause/" target="_blank" rel="noopener noreferrer">Inside Climate News - California Manure Biogas Programs</a></li>
+                        <li><a href="https://wildlife.org/snowmobiles-affect-bird-songs/" target="_blank" rel="noopener noreferrer">Wildlife.org - Snowmobiles affect bird songs</a></li>
+                        <li><a href="https://www.nina.no/english/About-NINA/News/article/detecting-bird-sounds-across-the-globe-to-deliver-reliable-biodiversity-insights" target="_blank" rel="noopener noreferrer">NINA.no - Global Bird Sound Detection</a></li>
+                        <li><a href="https://www.ajot.com/insights/full/ai-stanford-says-northern-california-highways-face-sea-level-threat-rise" target="_blank" rel="noopener noreferrer">American Journal of Transportation - Sea Level Rise Threat to Coastal Highways</a></li>
+                        <li><a href="https://www.sciencedaily.com/releases/2021/06/210603111919.htm" target="_blank" rel="noopener noreferrer">Science Daily - Coastal flooding increases Bay Area traffic delays and accidents</a></li>
+                        <li><a href="https://news.stanford.edu/stories/2021/07/sea-level-rise-may-worsen-existing-bay-area-inequities" target="_blank" rel="noopener noreferrer">Stanford Report - Sea Level Rise May Worsen Existing Bay Area Inequities</a></li>    
+                    </ul>
+                </div>
+            </div>
 
-
-            <!-- Dropdown Section 6 -->
+            <!-- Dropdown Section 8 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ background</h2>
@@ -129,15 +209,16 @@
                 </div>
                 <div class="dropdown-content">
                     <ul>
-                        <li>B.S. Environmental Engineering, University at Buffalo</li>
+                        <li>B.S. Environmental Engineering, University at Buffalo</li>                        
                         <li>M.S. Environmental Engineering & Science, Stanford University</li>
-                        <li>PhD Computer Science & Ecology, Norwegian University of Science & Technology</li>
+                        <li>PhD Computer Science, Norwegian University of Science & Technology</li>
                         <li>Fellow, Stanford Climate & Energy Policy Program</li>
+                        <li>Data Scientist, Stanford RegLab</li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Dropdown Section 7 -->
+            <!-- Dropdown Section 9 -->
             <div class="dropdown">
                 <div class="dropdown-header">
                     <h2>/ contact</h2>
