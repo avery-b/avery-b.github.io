@@ -4,6 +4,11 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>wibes</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
     <style>
         /* Import the custom Flat Tyre font */
         @font-face {
@@ -17,7 +22,19 @@
         body {
             margin: 0;
             padding: 0;
-            font-family: sans-serif;
+            font-family: 'Be Vietnam Pro', sans-serif; /* Updated to Be Vietnam Pro */
+            font-size: 1.15em; /* Increased base text size for the entire page */
+        }
+
+        /* Hyperlink Formatting */
+        a {
+            color: #4da6ff; /* Light blue */
+            font-style: italic; /* Italic formatting */
+            text-decoration: none; /* No underlines */
+        }
+        
+        a:hover {
+            color: #1e90ff; /* Slightly darker blue on hover for better UX */
         }
 
         /* The WebGL Canvas background */
@@ -32,7 +49,7 @@
 
         /* A translucent container to ensure text is readable over the moving blobs */
         .content-wrapper {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.97);
             max-width: 800px;
             margin: 40px auto;
             padding: 30px;
@@ -55,7 +72,7 @@
             font-family: 'Flat Tyre', sans-serif;
             text-align: center;
             color: #111;
-            font-size: 4.5em; /* Slightly increased size */
+            font-size: 5.8em; /* Increased size significantly more */
             margin-top: 0;
         }
 
@@ -67,7 +84,7 @@
             text-decoration: underline;
             text-decoration-style: wavy;
             text-underline-offset: 4px; 
-            font-size: 1.6em; /* Explicitly increased font size */
+            font-size: 1.6em; /* Inherits the base bump, so this is larger too */
             margin-top: 40px; /* Give a bit more breathing room above sections */
         }
         
@@ -87,7 +104,7 @@
             <h1>wibes</h1>
           </div>
         </div>
-        <div>
+
 
         <figure>
             <img class="centerImg" src="images/dive_down_4000x4000.jpg" alt="">
@@ -114,34 +131,36 @@
         <br>
         
         <h3>Press...</h3>
-        <p>for "uendelig flow":</p>
-        <a href="https://www.dadadamusic.com/reviews/uendelig-flow-wibes">Da Da Da Music</a><br> 
-        <a href="https://www.iggymagazine.com/wibes-nous-devoile-leur-magnifique-single-original-uendelig-flow/">IGGY Magazine</a><br>
-        <a href="https://yorkcalling.co.uk/2024/04/01/discovery-wibes/">York Calling</a><br><br> 
+        <div style="text-align: center;">
+            <p>for "uendelig flow":</p>
+            <a href="https://www.dadadamusic.com/reviews/uendelig-flow-wibes">Da Da Da Music</a><br> 
+            <a href="https://www.iggymagazine.com/wibes-nous-devoile-leur-magnifique-single-original-uendelig-flow/">IGGY Magazine</a><br>
+            <a href="https://yorkcalling.co.uk/2024/04/01/discovery-wibes/">York Calling</a><br><br> 
 
-        <p>for "øyestikker":</p>
-        <a href="https://www.zonenights.com/2025/01/wibes-oyestikker-single/">Zone Nights</a><br> 
-        <a href="https://weallwantsomeone.org/2025/02/08/wibes-oyestikker/">We All Want Someone to Shout For</a><br><br>
+            <p>for "øyestikker":</p>
+            <a href="https://www.zonenights.com/2025/01/wibes-oyestikker-single/">Zone Nights</a><br> 
+            <a href="https://weallwantsomeone.org/2025/02/08/wibes-oyestikker/">We All Want Someone to Shout For</a><br><br>
 
-        <p>for "Mystic Whale Love":</p>
-        <a href="https://citiesandmemory.com/polar-sounds/">Cities and Memories</a><br> 
-        <a href="https://weallwantsomeone.org/2023/04/09/wibes-mystic-whale-love/">We All Want Someone to Shout For</a><br>
-        <a href="https://podcart.co/wibes-mystic-whale-love/">Podcart</a><br>
-        <a href="https://www.zonenights.com/2023/03/wibes-presenta-su-nuevo-sencillo-mystic-whale-love/">Zone Nights</a><br>
+            <p>for "Mystic Whale Love":</p>
+            <a href="https://citiesandmemory.com/polar-sounds/">Cities and Memories</a><br> 
+            <a href="https://weallwantsomeone.org/2023/04/09/wibes-mystic-whale-love/">We All Want Someone to Shout For</a><br>
+            <a href="https://podcart.co/wibes-mystic-whale-love/">Podcart</a><br>
+            <a href="https://www.zonenights.com/2023/03/wibes-presenta-su-nuevo-sencillo-mystic-whale-love/">Zone Nights</a><br>
 
-        <h3>Photos...</h3>
-        <br>
-        <img class="centerImg" src="images/Wibes_6.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_7.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_8.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_9.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_1.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_2.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_3.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_4.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-        <img class="centerImg" src="images/Wibes_5.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-
-        </div>		
+            <h3>Photos...</h3>
+            <div style="text-align: center;">
+                <br>
+                <img class="centerImg" src="images/Wibes_6.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_7.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_8.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_9.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_1.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_2.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_3.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_4.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+                <img class="centerImg" src="images/Wibes_5.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+            </div>
+        </div>      
       </div>
     </div>
 
