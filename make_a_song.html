@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>make a song with this</title>
+<title>MAKE A SONG</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Merriweather+Sans:ital,wght@0,400;0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -67,7 +67,7 @@ header{
   font-size:28px;letter-spacing:.06em;text-transform:uppercase;
   line-height:1.15;color:var(--txt);text-align:center;
 }
-header .rocker{position:absolute;right:30px;top:50%;transform:translateY(-50%)}
+.hright{position:absolute;right:30px;top:50%;transform:translateY(-50%);display:flex;gap:10px;align-items:center}
 #theme-seg{position:absolute;left:30px;top:50%;transform:translateY(-50%)}
 
 /* instrument switch */
@@ -80,7 +80,7 @@ header .rocker{position:absolute;right:30px;top:50%;transform:translateY(-50%)}
 .rocker button.on{background:var(--sel-bg);color:var(--sel-fg)}
 
 /* ---------- tabs ---------- */
-nav.tabs{display:flex;gap:22px;padding:14px 30px 0;border-bottom:1px solid var(--line-dark)}
+nav.tabs{display:flex;gap:22px;padding:14px 30px 0;border-bottom:1px solid var(--line-dark);justify-content:center}
 nav.tabs button{
   border:0;border-bottom:2px solid transparent;background:transparent;
   color:var(--muted);font-size:14px;font-weight:500;padding:10px 2px 12px;
@@ -89,6 +89,12 @@ nav.tabs button{
 nav.tabs button:hover{color:var(--txt)}
 nav.tabs button.on{color:var(--txt);border-bottom-color:var(--txt)}
 main{padding:0 30px}
+#panel-prog .rail{justify-content:center}
+#panel-prog .slots{justify-content:center}
+#modes-out .cards{justify-content:center}
+#panel-prog .rail{justify-content:center}
+#panel-prog .slots{justify-content:center}
+#modes-out .cards{justify-content:center}
 .panel{padding-top:26px}
 
 /* ---------- control rail (on canvas) ---------- */
@@ -114,7 +120,7 @@ main{padding:0 30px}
 }
 .fretstrip button.on .inlay{background:var(--sel-fg);opacity:.35}
 .fretstrip button.scale-tone{background:var(--yellow-bg);color:var(--yellow)}
-.fretstrip button.root-tone{background:var(--green-bg);color:var(--green)}
+.fretstrip button.root-tone{background:#3E7B4B;color:#FFFFFF}
 .fretstrip button.scale-tone .inlay,.fretstrip button.root-tone .inlay{background:currentColor;opacity:.4}
 
 /* segmented controls */
@@ -266,17 +272,20 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
     <button data-th="dark" class="on">Dark</button>
   </div>
   <div class="brand">
-    <h1>Make a Song With This</h1>
+    <h1>Make a Song</h1>
   </div>
-  <div class="rocker" role="group" aria-label="Instrument">
-    <button id="inst-guitar" class="on">Guitar</button>
-    <button id="inst-bass">Bass</button>
+  <div class="hright">
+    <select id="tuning-sel" aria-label="Tuning"></select>
+    <div class="rocker" role="group" aria-label="Instrument">
+      <button id="inst-guitar" class="on">Guitar</button>
+      <button id="inst-bass">Bass</button>
+    </div>
   </div>
 </header>
 
 <nav class="tabs">
-  <button id="tab-lib" class="on">Chord shapes</button>
-  <button id="tab-prog">Progression builder</button>
+  <button id="tab-prog" class="on">Progression builder</button>
+  <button id="tab-lib">Chord shapes</button>
   <button id="tab-scales">Scales</button>
   <button id="tab-ex">Triad exercises</button>
   <button id="tab-find">Scale finder</button>
@@ -284,7 +293,7 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
 
 <main>
   <!-- ============ LIBRARY ============ -->
-  <section id="panel-lib" class="panel">
+  <section id="panel-lib" class="panel" hidden>
     <div class="rail">
       <div class="ctl">
         <label class="cap" for="root-strip">Root note</label>
@@ -298,12 +307,20 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
           <button data-inv="fifth">Fifth</button>
         </div>
       </div>
+      <div class="ctl">
+        <label class="cap" for="lib-pos-sel">Bass string</label>
+        <select id="lib-pos-sel"></select>
+      </div>
+      <div class="ctl">
+        <label class="cap" for="lib-region-sel">Neck region</label>
+        <select id="lib-region-sel"></select>
+      </div>
     </div>
     <div id="lib-out"></div>
   </section>
 
   <!-- ============ BUILDER ============ -->
-  <section id="panel-prog" class="panel" hidden>
+  <section id="panel-prog" class="panel">
     <div class="rail playbar" id="prog-playbar">
       <div class="ctl">
         <label class="cap">Playback</label>
@@ -392,8 +409,6 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
     </div>
 
     <div class="slots" id="slots"></div>
-    <p class="note">Each chord is built from the scale: pick a degree and the quality fills in automatically.
-    Choose an inversion to change which chord tone sits in the bass. Up to six chords.</p>
 
         <div id="modes-out"></div>
   </section>
@@ -581,7 +596,7 @@ function findVoicing(rootPc,tones,bassIv,strings,OPEN,maxSpan=4,minFret=0){
         let ch=null;
         for(const f of [f0,f0+12,f0+24]){
           const p=OPEN[s]+f;
-          if(p<=bp)continue;
+          if(p<=bp+(iv>=12?11:0))continue;   // compound intervals (10ths, stacked 4ths/5ths) stay spread
           if(f<minFret&&f!==0)continue;
           if(f===0&&minFret>0)continue;
           if(Math.abs(f-bf)<=span||(f===0&&bf<=4)){ch=f;break;}
@@ -604,18 +619,39 @@ function findVoicing(rootPc,tones,bassIv,strings,OPEN,maxSpan=4,minFret=0){
   }
   return best?best.v:null;
 }
+function canSimplify(tones){
+  // 9ths/13ths may fall back to close 'add' voicings; a 10th's identity IS the spread
+  return tones.some(t=>t[0]>=12)&&!tones.some(t=>String(t[1]).indexOf('10')>=0);
+}
 function guitarVoicing(rootPc,tones,bassIv,bassString,minFret=0){
-  const strings=tones.length===3
-    ? {6:[6,5,4],5:[5,4,3],4:[4,3,2]}[bassString]
-    : {6:[6,4,3,2],5:[5,4,3,2],4:[4,3,2,1]}[bassString];
-  return findVoicing(rootPc,tones,bassIv,strings,GUITAR_OPEN,4,minFret);
+  const attempt=(T,B)=>{
+    const wide=T.some(t=>t[0]>=12);
+    const strings=T.length===3
+      ? (wide?{6:[6,4,3],5:[5,3,2],4:[4,2,1]}:{6:[6,5,4],5:[5,4,3],4:[4,3,2]})[bassString]
+      : {6:[6,4,3,2],5:[5,4,3,2],4:[4,3,2,1]}[bassString];
+    return findVoicing(rootPc,T,B,strings,GUITAR_OPEN,4,minFret);
+  };
+  let v=attempt(tones,bassIv);
+  if(!v&&canSimplify(tones))
+    v=attempt(tones.map(([iv,r])=>[iv%12,r]),bassIv%12);
+  return v;
 }
 function bassVoicing(rootPc,tones,bassIv,pos,minFret=0){
-  let use,strings;
-  if(pos==='E'){use=tones;strings=use.length===3?[4,3,2]:[4,3,2,1];}
-  else if(pos==='A'){use=selectTones(tones,bassIv,3);strings=[3,2,1];}
-  else{use=selectTones(tones,bassIv,3);strings=[4,2,1];}
-  return findVoicing(rootPc,use,bassIv,strings,BASS_OPEN,4,minFret);
+  const attempt=(T,B)=>{
+    let use,strings;
+    if(pos==='E'){
+      use=T;
+      const wide=use.some(t=>t[0]>=12);
+      strings=use.length===3?(wide?[4,2,1]:[4,3,2]):[4,3,2,1];
+    }
+    else if(pos==='A'){use=selectTones(T,B,3);strings=[3,2,1];}
+    else{use=selectTones(T,B,3);strings=[4,2,1];}
+    return findVoicing(rootPc,use,B,strings,BASS_OPEN,4,minFret);
+  };
+  let v=attempt(tones,bassIv);
+  if(!v&&canSimplify(tones))
+    v=attempt(tones.map(([iv,r])=>[iv%12,r]),bassIv%12);
+  return v;
 }
 
 /* ================= naming ================= */
@@ -647,6 +683,12 @@ const LIB_QUALITIES=[
   {label:'m6',  suffix:'m6',   tones:[[0,'R'],[3,'b3'],[7,'5'],[9,'6']]},
   {label:'m7',  suffix:'m7',   tones:[[0,'R'],[3,'b3'],[7,'5'],[10,'b7']]},
   {label:'7',   suffix:'7',    tones:[[0,'R'],[4,'3'],[7,'5'],[10,'b7']]},
+  {label:'sus4',suffix:'sus4', tones:[[0,'R'],[5,'4'],[7,'5']]},
+  {label:'9',   suffix:'9',    tones:[[0,'R'],[4,'3'],[10,'b7'],[14,'9']]},
+  {label:'maj9',suffix:'maj9', tones:[[0,'R'],[4,'3'],[11,'7'],[14,'9']]},
+  {label:'m9',  suffix:'m9',   tones:[[0,'R'],[3,'b3'],[10,'b7'],[14,'9']]},
+  {label:'10th',suffix:'(10th)',tones:[[0,'R'],[7,'5'],[16,'10']]},
+  {label:'13',  suffix:'13',   tones:[[0,'R'],[4,'3'],[10,'b7'],[21,'13']]},
 ];
 
 /* ================= scales & diatonic chords ================= */
@@ -699,6 +741,35 @@ function diatonic(steps,d,useSeventh){
   if(f===8)rn+='+';
   if(useSeventh)rn+=(s===11?'Δ7':'7');
   return {rootOffset:base%12,tones,suffix,rn};
+}
+
+/* ================= tunings ================= */
+const TUNINGS={
+  guitar:[
+    {id:'standard',name:'Standard (E A D G B E)', open:[40,45,50,55,59,64]},
+    {id:'dropd',   name:'Drop D (D A D G B E)',   open:[38,45,50,55,59,64]},
+    {id:'half',    name:'Half step down',          open:[39,44,49,54,58,63]},
+    {id:'whole',   name:'Whole step down',         open:[38,43,48,53,57,62]},
+    {id:'opend',   name:'Open D (D A D F♯ A D)',  open:[38,45,50,54,57,62]},
+    {id:'openg',   name:'Open G (D G D G B D)',   open:[38,43,50,55,59,62]},
+    {id:'openc',   name:'Open C (C G C G C E)',   open:[36,43,48,55,60,64]},
+    {id:'dadgad',  name:'Celtic (DADGAD)',         open:[38,45,50,55,57,62]},
+    {id:'mbv',     name:'MBV (D A D A A D)',        open:[38,45,50,57,57,62]},
+    {id:'amfoot',  name:'Amer. Football (F A C G C E)', open:[41,45,48,55,60,64]},
+    {id:'p4',      name:'Perfect 4ths (E A D G C F)',   open:[40,45,50,55,60,65]},
+  ],
+  bass:[
+    {id:'standard',name:'Standard (E A D G)', open:[28,33,38,43]},
+    {id:'dropd',   name:'Drop D (D A D G)',   open:[26,33,38,43]},
+    {id:'half',    name:'Half step down',      open:[27,32,37,42]},
+    {id:'whole',   name:'Whole step down',     open:[26,31,36,41]},
+  ]
+};
+function applyTuning(){
+  const g=TUNINGS.guitar.find(t=>t.id===state.tuningGuitar)||TUNINGS.guitar[0];
+  g.open.forEach((m,i)=>{GUITAR_OPEN[6-i]=m;});
+  const b=TUNINGS.bass.find(t=>t.id===state.tuningBass)||TUNINGS.bass[0];
+  b.open.forEach((m,i)=>{BASS_OPEN[4-i]=m;});
 }
 
 /* ================= theme-aware drawing colors ================= */
@@ -783,9 +854,11 @@ function chordCard(name,rn,v,inst){
 const state={
   theme:'dark',
   instrument:'guitar',
-  tab:'lib',
+  tuningGuitar:'standard', tuningBass:'standard',
+  tab:'prog',
   root:0,
   inversion:'root',
+  libPosGuitar:'6', libPosBass:'E', libRegion:'any',
   key:0,
   scale:'major',
   seventh:true,
@@ -795,7 +868,7 @@ const state={
   exRoot:0, exScale:'major', exInv:'root', exPosGuitar:'6', exPosBass:'E', exMode:'grips',
   arpInv:'root', arpPat:'straight', arpSkip:false,
   findRoot:0, findNotes:[0],
-  voice:'pluck', tempo:96, volume:70, loop:false, rhythm:'off',
+  voice:'triangle', tempo:96, volume:70, loop:false, rhythm:'off',
   region:'any',
   slots:[
     {degree:0,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none'},
@@ -806,40 +879,35 @@ const state={
 };
 
 /* ================= library view ================= */
-const GUITAR_ROWS=[
-  {id:'6',title:'Bass note on the 6th string (low E)'},
-  {id:'5',title:'Bass note on the 5th string (A)'},
-  {id:'4',title:'Bass note on the 4th string (D)'},
-];
-const BASS_ROWS=[
-  {id:'E',title:'Bass note on the 4th string (low E)'},
-  {id:'A',title:'Bass note on the 3rd string (A)'},
-  {id:'Espread',title:'Low E, A string skipped — spread voicing'},
-];
 function bassIvFor(tones,inv){
   return inv==='root'?tones[0][0]:inv==='third'?tones[1][0]:tones[2][0];
 }
+function renderLibPosSelect(){
+  const sel=document.getElementById('lib-pos-sel');
+  const opts=state.instrument==='guitar'
+    ? [['6','6th string (low E)'],['5','5th string (A)'],['4','4th string (D)']]
+    : [['E','E string'],['A','A string'],['Espread','Low E, skip A (spread)']];
+  const cur=state.instrument==='guitar'?state.libPosGuitar:state.libPosBass;
+  sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
+}
 function renderLibrary(){
+  renderLibPosSelect();
   const out=document.getElementById('lib-out');
   out.innerHTML='';
-  const rows=state.instrument==='guitar'?GUITAR_ROWS:BASS_ROWS;
   const rn={root:'root position',third:'3rd in the bass',fifth:'5th in the bass'}[state.inversion];
-  rows.forEach(row=>{
-    const t=document.createElement('div');
-    t.className='rowtitle';t.textContent=row.title;
-    out.appendChild(t);
-    const wrap=document.createElement('div');wrap.className='cards';
-    LIB_QUALITIES.forEach(q=>{
-      const name=noteName(state.root,state.root)+q.suffix;
-      const iv=bassIvFor(q.tones,state.inversion);
-      const v=state.instrument==='guitar'
-        ? guitarVoicing(state.root,q.tones,iv,parseInt(row.id))
-        : bassVoicing(state.root,q.tones,iv,row.id);
-      wrap.appendChild(chordCard(name,rn,v,state.instrument));
-    });
-    staggerChildren(wrap);
-    out.appendChild(wrap);
+  const pos=state.instrument==='guitar'?state.libPosGuitar:state.libPosBass;
+  const minF=REGION_MIN[state.libRegion]||0;
+  const wrap=document.createElement('div');wrap.className='cards';
+  LIB_QUALITIES.forEach(q=>{
+    const name=noteName(state.root,state.root)+q.suffix;
+    const iv=bassIvFor(q.tones,state.inversion);
+    const v=state.instrument==='guitar'
+      ? guitarVoicing(state.root,q.tones,iv,parseInt(pos),minF)
+      : bassVoicing(state.root,q.tones,iv,pos,minF);
+    wrap.appendChild(chordCard(name,rn,v,state.instrument));
   });
+  staggerChildren(wrap);
+  out.appendChild(wrap);
 }
 
 /* ================= builder view ================= */
@@ -876,12 +944,12 @@ function diatonicType(steps,d,type){
   const at=k=>steps[k%7]+Math.floor(k/7)*12;
   const base=at(d);
   const t=at(d+2)-base, f=at(d+4)-base, s=at(d+6)-base;
-  const n9=(at(d+8)-base)%12, n13=(at(d+12)-base)%12, p4=at(d+3)-base;
+  const n9=at(d+8)-base, n13=at(d+12)-base, p4=at(d+3)-base;
   const roleT=t===3?'b3':'3';
   const roleF=f===6?'b5':(f===8?'#5':'5');
   const roleS=s===9?'bb7':(s===10?'b7':'7');
-  const role9=n9===1?'b9':(n9===3?'#9':'9');
-  const role13=n13===8?'b13':'13';
+  const role9=n9%12===1?'b9':(n9%12===3?'#9':'9');
+  const role13=n13%12===8?'b13':'13';
   const role4=p4===6?'#4':'4';
   const q7=SUFFIX7[`${t},${f},${s}`]??'?';
   const q3=SUFFIX3[`${t},${f}`]??'?';
@@ -890,14 +958,14 @@ function diatonicType(steps,d,type){
   else if(type==='seventh'){tones=[[0,'R'],[t,roleT],[f,roleF],[s,roleS]];suffix=q7;tag=s===11?'Δ7':'7';}
   else if(type==='ninth'){
     tones=[[0,'R'],[t,roleT],[s,roleS],[n9,role9]];
-    suffix=n9===2
+    suffix=n9%12===2
       ? ({'maj7':'maj9','7':'9','m7':'m9','m(maj7)':'m(maj9)'}[q7]??q7+'(add9)')
-      : q7+(n9===1?'♭9':'♯9');
+      : q7+(n9%12===1?'♭9':'♯9');
     tag=(s===11?'Δ':'')+'9';
   }
   else if(type==='thirteenth'){
     tones=[[0,'R'],[t,roleT],[s,roleS],[n13,role13]];
-    suffix=n13===9
+    suffix=n13%12===9
       ? ({'maj7':'maj13','7':'13','m7':'m13','m(maj7)':'m(maj13)'}[q7]??q7+'(add13)')
       : q7+'♭13';
     tag=(s===11?'Δ':'')+'13';
@@ -1109,6 +1177,7 @@ function renderProgression(){
     const invLabel={root:'root position',third:'3rd in bass',fifth:'5th in bass'}[slot.inv];
     const card=chordCard(ch.name,`${ch.rn} · ${invLabel}`,v,state.instrument);
     card.classList.add('wide','prog-card');
+    if(!holders[i])return;
     holders[i].innerHTML='';
     holders[i].appendChild(card);
   });
@@ -1282,9 +1351,17 @@ function arpTabData(descending){
 function arpTabText(measures){
   const inst=state.instrument;
   const disp=inst==='guitar'?[1,2,3,4,5,6]:[1,2,3,4];
-  const lab=inst==='guitar'?{1:'e',2:'B',3:'G',4:'D',5:'A',6:'E'}:{1:'G',2:'D',3:'A',4:'E'};
-  const lines={};disp.forEach(s=>lines[s]=lab[s]+'|');
-  let labelLine='  ';
+  const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
+  const SH=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+  const lab={};
+  disp.forEach(s=>{
+    let L=SH[OPEN[s]%12];
+    if(inst==='guitar'&&s===1)L=L.toLowerCase();
+    lab[s]=L;
+  });
+  const w0=Math.max(...disp.map(s=>lab[s].length));
+  const lines={};disp.forEach(s=>lines[s]=lab[s].padEnd(w0)+'|');
+  let labelLine=' '.repeat(w0+1);
   const w=4;
   measures.forEach(m=>{
     disp.forEach(s=>{
@@ -1427,15 +1504,11 @@ function renderModes(){
       : '';
     return `<div class="card scalecard">
       <h3>${nn(m.tonicPc,fl)} ${m.name}</h3>
-      <div class="why">${ORDINAL[m.d]} mode — same notes as ${nn(state.key,fl)} ${scName}, heard from ${nn(m.tonicPc,fl)}. The key root is outlined.</div>
       <div class="legend">${chips}</div>${btn}
     </div>`;
   }).join('');
   box.innerHTML=`
     <div class="rowtitle">Modes of ${nn(state.key,fl)} ${scName}</div>
-    <p class="note">Every degree of the scale starts its own mode — the same seven notes with a different
-    tonal center. When your progression sits on one chord for a while, the matching mode below is the
-    color to solo with. Green marks each mode's tonic, yellow its other tones.</p>
     <div class="cards">${cards}</div>`;
   staggerChildren(box.querySelector('.cards'));
 }
@@ -2155,6 +2228,8 @@ function setInst(i){
     if(i==='guitar'&&bp.includes(s.pos))s.pos=gp[bp.indexOf(s.pos)];
   });
   state.instrument=i;
+  populateTuningSel();
+  applyTuning();
   document.getElementById('inst-guitar').classList.toggle('on',i==='guitar');
   document.getElementById('inst-bass').classList.toggle('on',i==='bass');
   render();
@@ -2169,6 +2244,16 @@ function setTab(t){
     document.getElementById('panel-'+x).hidden=x!==t;
   });
   render();
+}
+document.getElementById('lib-pos-sel').addEventListener('change',e=>{
+  if(state.instrument==='guitar')state.libPosGuitar=e.target.value;
+  else state.libPosBass=e.target.value;
+  renderLibrary();
+});
+{
+  const lr=document.getElementById('lib-region-sel');
+  lr.innerHTML=REGIONS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  lr.addEventListener('change',()=>{state.libRegion=lr.value;renderLibrary();});
 }
 document.getElementById('inv-seg').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -2247,6 +2332,27 @@ else{
   document.getElementById('load-local-ctl').hidden=true;
   document.getElementById('save-note').hidden=false;
 }
+const tuningSel=document.getElementById('tuning-sel');
+function populateTuningSel(){
+  const list=TUNINGS[state.instrument];
+  const cur=state.instrument==='guitar'?state.tuningGuitar:state.tuningBass;
+  tuningSel.innerHTML=list.map(t=>`<option value="${t.id}"${t.id===cur?' selected':''}>${t.name}</option>`).join('');
+}
+tuningSel.addEventListener('change',()=>{
+  if(state.instrument==='guitar')state.tuningGuitar=tuningSel.value;
+  else state.tuningBass=tuningSel.value;
+  applyTuning();
+  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass}));}catch(e){}
+  if(AudioEngine.playing)AudioEngine.stop();
+  render();
+});
+try{
+  const tv=JSON.parse(localStorage.getItem('mast_tuning')||'{}');
+  if(TUNINGS.guitar.some(t=>t.id===tv.g))state.tuningGuitar=tv.g;
+  if(TUNINGS.bass.some(t=>t.id===tv.b))state.tuningBass=tv.b;
+}catch(e){}
+applyTuning();
+populateTuningSel();
 function setTheme(t){
   state.theme=t==='light'?'light':'dark';
   document.documentElement.dataset.theme=state.theme;
