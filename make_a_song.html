@@ -29,6 +29,32 @@ html[data-theme="dark"]{
   --accent-fg:#8FC1EA; --accent-bg:rgba(31,108,159,.30); --inlay-ui:#5A5A57;
   --panel:#1C1C1B;
 }
+html[data-theme="greys"]{
+  --canvas:#161616; --txt:#F2F2F0; --muted:#A3A3A0;
+  --line-dark:rgba(255,255,255,.12);
+  --box:#232323; --box-line:rgba(255,255,255,.15);
+  --ink:#F2F2F0; --ink2:#DCDCDA; --sub:#A3A3A0;
+  --bar:#1C1C1C; --bar-line:rgba(255,255,255,.18);
+  --input:#2C2C2C; --input-line:rgba(255,255,255,.16); --input-fg:#F2F2F0;
+  --sel-bg:#EDEDEA; --sel-fg:#141414;
+  --cta-bg:#EDEDEA; --cta-fg:#141414; --cta-hover:#D6D6D3; --danger:#C4544C;
+  --hover:#2E2E2E; --dash:rgba(255,255,255,.25); --dash-h:rgba(255,255,255,.45);
+  --accent-fg:#CFCFCC; --accent-bg:rgba(255,255,255,.16); --inlay-ui:#4A4A4A;
+  --panel:#2C2C2C;
+}
+html[data-theme="blues"]{
+  --canvas:#0A1018; --txt:#EAF1F8; --muted:#8FA5B8;
+  --line-dark:rgba(160,200,240,.16);
+  --box:#111B28; --box-line:rgba(160,200,240,.18);
+  --ink:#EAF1F8; --ink2:#D3E1EE; --sub:#8FA5B8;
+  --bar:#0D1520; --bar-line:rgba(160,200,240,.22);
+  --input:#16233A; --input-line:rgba(160,200,240,.2); --input-fg:#EAF1F8;
+  --sel-bg:#CFE4F7; --sel-fg:#0B1622;
+  --cta-bg:#CFE4F7; --cta-fg:#0B1622; --cta-hover:#B4D4EF; --danger:#D07070;
+  --hover:#1A2A3D; --dash:rgba(160,200,240,.3); --dash-h:rgba(160,200,240,.5);
+  --accent-fg:#9CC8F0; --accent-bg:rgba(120,180,235,.25); --inlay-ui:#33475C;
+  --panel:#16233A;
+}
 html[data-theme="light"]{
   --canvas:#FBFBFA; --txt:#111111; --muted:#787774;
   --line-dark:rgba(0,0,0,.10);
@@ -69,7 +95,7 @@ header{
   line-height:1.15;color:var(--txt);text-align:center;
 }
 .hright{position:absolute;right:30px;top:50%;transform:translateY(-50%);display:flex;gap:10px;align-items:center}
-#theme-seg{position:absolute;left:30px;top:50%;transform:translateY(-50%)}
+#theme-sel{position:absolute;left:30px;top:50%;transform:translateY(-50%)}
 
 /* instrument switch */
 .rocker{display:flex;border:1px solid var(--input-line);border-radius:6px;overflow:hidden;background:var(--input)}
@@ -268,10 +294,7 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
 <body>
 
 <header>
-  <div class="seg" id="theme-seg" role="group" aria-label="Color mode">
-    <button data-th="light">Light</button>
-    <button data-th="dark" class="on">Dark</button>
-  </div>
+  <select id="theme-sel" aria-label="Color mode"></select>
   <div class="brand">
     <h1>Make a Song</h1>
   </div>
@@ -858,7 +881,84 @@ const SVG_THEMES={
          nut:'#111111', inlay:'#EFEDE8', dot:'#2F3437', root:'#9F2F2D', fifth:'#956400',
          tone:'#2F3437', green:'#346538'}
 };
-const th=()=>SVG_THEMES[state.theme]||SVG_THEMES.dark;
+SVG_THEMES.greys={ink:'#F2F2F0',sub:'#A3A3A0',x:'#6E6E6C',grid:'#8F8F8C',fret:'#3B3B3B',
+  nut:'#F2F2F0',inlay:'#2E2E2E',dot:'#D2D2CF',root:'#FFFFFF',fifth:'#8F8F8C',
+  tone:'#D2D2CF',green:'#BDBDBA'};
+SVG_THEMES.blues={ink:'#EAF1F8',sub:'#8FA5B8',x:'#5E7488',grid:'#7E96AB',fret:'#233346',
+  nut:'#EAF1F8',inlay:'#1B2A3C',dot:'#D6E4F1',root:'#79B8F0',fifth:'#A9C3DC',
+  tone:'#D6E4F1',green:'#8FD0B8'};
+/* cosine-palette themes, derived from a + b·cos(2π(c·t + d)) */
+const COS_PALS={
+  cos1:{a:[.65,.59,.03],b:[.28,.14,.16],c:[.72,.35,.51],d:[.03,.30,.18]},
+  cos2:{a:[.61,.15,.97],b:[.66,.39,.37],c:[.19,.85,.64],d:[.47,.10,.58]},
+  cos3:{a:[.44,.10,.95],b:[.03,.70,.91],c:[.58,.92,.73],d:[.13,.84,.85]},
+  cos4:{a:[.97,.41,.50],b:[.69,.10,.17],c:[.78,.75,.15],d:[.70,.93,.78]},
+  cos5:{a:[.67,.67,.78],b:[.42,.14,.33],c:[.60,.96,.47],d:[.82,.22,.41]},
+};
+const clamp01=x=>Math.min(1,Math.max(0,x));
+const cosRGB=(t,P)=>[0,1,2].map(i=>clamp01(P.a[i]+P.b[i]*Math.cos(2*Math.PI*(P.c[i]*t+P.d[i]))));
+const lumRGB=r=>0.2126*r[0]+0.7152*r[1]+0.0722*r[2];
+const mixRGB=(x,y,f)=>[0,1,2].map(i=>x[i]+(y[i]-x[i])*f);
+function toLum(r,target){
+  let c=r.slice();
+  for(let k=0;k<26;k++){
+    const l=lumRGB(c);
+    if(Math.abs(l-target)<0.02)break;
+    c=l<target?mixRGB(c,[1,1,1],.12):mixRGB(c,[0,0,0],.12);
+  }
+  return c;
+}
+const hexRGB=r=>'#'+r.map(v=>Math.round(v*255).toString(16).padStart(2,'0')).join('');
+const rgbaRGB=(r,a)=>`rgba(${r.map(v=>Math.round(v*255)).join(',')},${a})`;
+const COS_CACHE={};
+function buildCosTheme(id){
+  if(COS_CACHE[id])return COS_CACHE[id];
+  const P=COS_PALS[id];
+  const s=t=>cosRGB(t,P);
+  const bright=toLum(s(0.10),0.80), accent=toLum(s(0.45),0.66);
+  const canvas=toLum(s(0),0.035), box=toLum(mixRGB(s(0),s(0.5),.5),0.105);
+  const bar=toLum(s(0),0.075), input=toLum(box,0.155), hover=toLum(box,0.19);
+  const sub=toLum(mixRGB(s(0.7),[.62,.62,.60],.55),0.60);
+  const root=toLum(s(0.00),0.58), fifth=toLum(s(0.30),0.70),
+        tone=toLum(s(0.62),0.82), green=toLum(s(0.85),0.62);
+  const vars={
+    '--canvas':hexRGB(canvas),'--box':hexRGB(box),'--bar':hexRGB(bar),
+    '--input':hexRGB(input),'--panel':hexRGB(input),'--hover':hexRGB(hover),
+    '--txt':'#F5F4F1','--ink':'#F5F4F1','--ink2':'#E6E4DF',
+    '--muted':hexRGB(sub),'--sub':hexRGB(sub),'--input-fg':'#F5F4F1',
+    '--line-dark':rgbaRGB(bright,.16),'--box-line':rgbaRGB(bright,.20),
+    '--bar-line':rgbaRGB(bright,.24),'--input-line':rgbaRGB(bright,.22),
+    '--sel-bg':hexRGB(bright),'--sel-fg':'#111111',
+    '--cta-bg':hexRGB(bright),'--cta-fg':'#111111',
+    '--cta-hover':hexRGB(mixRGB(bright,[0,0,0],.15)),'--danger':'#C4544C',
+    '--dash':rgbaRGB(bright,.30),'--dash-h':rgbaRGB(bright,.50),
+    '--accent-fg':hexRGB(accent),'--accent-bg':rgbaRGB(accent,.28),
+    '--inlay-ui':hexRGB(toLum(box,.30)),
+  };
+  const svg={ink:'#F5F4F1',sub:hexRGB(sub),x:hexRGB(toLum(sub,.42)),grid:hexRGB(toLum(sub,.50)),
+    fret:hexRGB(toLum(box,.22)),nut:'#F5F4F1',inlay:hexRGB(toLum(box,.12)),
+    dot:hexRGB(tone),root:hexRGB(root),fifth:hexRGB(fifth),tone:hexRGB(tone),green:hexRGB(green)};
+  COS_CACHE[id]={vars,svg};
+  return COS_CACHE[id];
+}
+const THEME_IDS=['dark','light','greys','blues','cos1','cos2','cos3','cos4','cos5'];
+function applyThemeVars(){
+  const rootEl=document.documentElement;
+  if(applyThemeVars._keys)applyThemeVars._keys.forEach(k=>rootEl.style.removeProperty(k));
+  applyThemeVars._keys=null;
+  if(state.theme.startsWith('cos')){
+    rootEl.dataset.theme='dark';
+    const t=buildCosTheme(state.theme);
+    Object.entries(t.vars).forEach(([k,v])=>rootEl.style.setProperty(k,v));
+    applyThemeVars._keys=Object.keys(t.vars);
+  }else{
+    rootEl.dataset.theme=state.theme;
+  }
+}
+const th=()=>{
+  if(state.theme&&state.theme.startsWith('cos'))return buildCosTheme(state.theme).svg;
+  return SVG_THEMES[state.theme]||SVG_THEMES.dark;
+};
 function textOn(hex){
   const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
   return (0.2126*r+0.7152*g+0.0722*b)/255>0.6?'#111111':'#FFFFFF';
@@ -2577,18 +2677,23 @@ applyTuning();
 populateTuningSel();
 syncDulcNotation();
 function setTheme(t){
-  state.theme=t==='light'?'light':'dark';
-  document.documentElement.dataset.theme=state.theme;
-  [...document.getElementById('theme-seg').children].forEach(b=>
-    b.classList.toggle('on',b.dataset.th===state.theme));
+  state.theme=THEME_IDS.includes(t)?t:'dark';
+  applyThemeVars();
+  const sel=document.getElementById('theme-sel');
+  if(sel)sel.value=state.theme;
   try{localStorage.setItem('mast_theme',state.theme);}catch(e){}
   render();
 }
-document.getElementById('theme-seg').addEventListener('click',e=>{
-  const b=e.target.closest('button');
-  if(b)setTheme(b.dataset.th);
-});
-try{const saved=localStorage.getItem('mast_theme');if(saved)setTheme(saved);}catch(e){}
+{
+  const themeSel=document.getElementById('theme-sel');
+  themeSel.innerHTML=[['dark','Dark'],['light','Light'],['greys','Greys'],['blues','Blues'],
+    ['cos1','Cosine 1'],['cos2','Cosine 2'],['cos3','Cosine 3'],['cos4','Cosine 4'],['cos5','Cosine 5']]
+    .map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  themeSel.addEventListener('change',()=>setTheme(themeSel.value));
+}
+let savedTheme=null;
+try{savedTheme=localStorage.getItem('mast_theme');}catch(e){}
+setTheme(savedTheme||'dark');
 populateRhythmSelects();
 bindAudioCtls('prog',playProgression,exportProgMidi);
 bindAudioCtls('arp',playArpeggio,exportArpMidi);
