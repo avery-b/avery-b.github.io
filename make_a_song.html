@@ -43,6 +43,7 @@ html[data-theme="light"]{
   --panel:#FFFFFF;
 }
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{
   background:var(--canvas);
@@ -275,10 +276,15 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
     <h1>Make a Song</h1>
   </div>
   <div class="hright">
+    <div class="seg" id="dulc-not-seg" role="group" aria-label="Dulcimer fret notation" hidden>
+      <button data-not="seq" class="on">Frets 1·2·3</button>
+      <button data-not="trad">1·1.5·2</button>
+    </div>
     <select id="tuning-sel" aria-label="Tuning"></select>
     <div class="rocker" role="group" aria-label="Instrument">
       <button id="inst-guitar" class="on">Guitar</button>
       <button id="inst-bass">Bass</button>
+      <button id="inst-dulc">Dulcimer</button>
     </div>
   </div>
 </header>
@@ -551,6 +557,62 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
 /* ================= voicing engine (mirrors the printed sheets) ================= */
 const GUITAR_OPEN={6:40,5:45,4:50,3:55,2:59,1:64};
 const BASS_OPEN={4:28,3:33,2:38,1:43};
+const DULC_OPEN={3:50,2:57,1:62};      // strings: 3=bass, 2=middle, 1=melody
+/* Diatonic dulcimer fretboard incl. the 1.5 and 6.5 frets: [fret number, semitones from open] */
+const DULC_FRETS=[[0,0],[1,2],[1.5,3],[2,4],[3,5],[4,7],[5,9],[6,10],[6.5,11],
+                  [7,12],[8,14],[9,16],[10,17],[11,19],[12,21],[13,22],[14,24]];
+const DULC_SEMIS=new Set(DULC_FRETS.map(f=>f[1]));
+const SEMI_TO_N={};DULC_FRETS.forEach(([n,s])=>SEMI_TO_N[s]=n);
+const N_TO_SEMI={};DULC_FRETS.forEach(([n,s])=>N_TO_SEMI[n]=s);
+const SEMI_TO_IDX={};DULC_FRETS.forEach(([n,s],i)=>SEMI_TO_IDX[s]=i);
+const N_TO_IDX={};DULC_FRETS.forEach(([n,s],i)=>N_TO_IDX[n]=i);
+function dulcLabelForN(n){return state.dulcNotation==='trad'?n:N_TO_IDX[n];}
+function dulcLabelForSemi(s){return state.dulcNotation==='trad'?SEMI_TO_N[s]:SEMI_TO_IDX[s];}
+function dulcVoicing(rootPc,tones,bassIv,minFret=0){
+  const use=selectTones(tones,bassIv,3);
+  const roleOf={};use.forEach(t=>roleOf[t[0]]=t[1]);
+  if(!(bassIv in roleOf))return null;
+  const others=use.map(t=>t[0]).filter(iv=>iv!==bassIv);
+  if(others.length!==2)return null;
+  const strings=[3,2,1];
+  let best=null;
+  for(const [bn,bs] of DULC_FRETS){
+    if(bn<minFret)continue;
+    if(bn===0&&minFret>0)continue;
+    if(((DULC_OPEN[3]+bs)%12)!==((rootPc+bassIv)%12+12)%12)continue;
+    const bp=DULC_OPEN[3]+bs;
+    for(const perm of permutations(others)){
+      const fr={3:[bs,bn]};let ok=true;
+      for(let i=0;i<perm.length;i++){
+        const s=strings[i+1],iv=perm[i];
+        const targetPc=(((rootPc+iv)%12)+12)%12;
+        let chosen=null;
+        for(const [n2,se2] of DULC_FRETS){
+          if(n2<minFret&&n2!==0)continue;
+          if(n2===0&&minFret>0)continue;
+          if(((DULC_OPEN[s]+se2)%12)!==targetPc)continue;
+          const p=DULC_OPEN[s]+se2;
+          if(p<=bp)continue;
+          if(Math.abs(n2-bn)<=4.5||(n2===0&&bn<=4)){chosen=[se2,n2];break;}
+        }
+        if(!chosen){ok=false;break;}
+        fr[s]=chosen;
+      }
+      if(!ok)continue;
+      const ns=Object.values(fr).map(x=>x[1]).filter(n=>n>0);
+      const span=ns.length?Math.max(...ns)-Math.min(...ns):0;
+      if(span>4.5)continue;
+      const avg=Object.values(fr).reduce((a,x)=>a+x[0],0)/3;
+      if(!best||span<best.span||(span===best.span&&avg<best.avg)){
+        const v={};
+        v[3]=[fr[3][0],roleOf[bassIv]];
+        perm.forEach((iv,i)=>{v[strings[i+1]]=[fr[strings[i+1]][0],roleOf[iv]];});
+        best={span,avg,v};    // stores SEMITONES; display converts to fret numbers
+      }
+    }
+  }
+  return best?best.v:null;
+}
 
 function permutations(a){
   if(a.length<=1)return [a.slice()];
@@ -763,6 +825,14 @@ const TUNINGS={
     {id:'dropd',   name:'Drop D (D A D G)',   open:[26,33,38,43]},
     {id:'half',    name:'Half step down',      open:[27,32,37,42]},
     {id:'whole',   name:'Whole step down',     open:[26,31,36,41]},
+  ],
+  dulcimer:[
+    {id:'dad', name:'DAD (1-5-8 / Mixolydian)', open:[50,57,62]},
+    {id:'daa', name:'DAA (1-5-5 / Ionian)',     open:[50,57,57]},
+    {id:'dgd', name:'DGD (1-5-8 in G)',         open:[50,55,62]},
+    {id:'dac', name:'DAC (1-5-♭7 / Aeolian)',   open:[50,57,60]},
+    {id:'dag', name:'DAG (1-5-4 / Dorian)',     open:[50,57,55]},
+    {id:'dfsa',name:'DF♯A (1-3-5 / Chromatic)', open:[50,54,57]},
   ]
 };
 function applyTuning(){
@@ -770,7 +840,14 @@ function applyTuning(){
   g.open.forEach((m,i)=>{GUITAR_OPEN[6-i]=m;});
   const b=TUNINGS.bass.find(t=>t.id===state.tuningBass)||TUNINGS.bass[0];
   b.open.forEach((m,i)=>{BASS_OPEN[4-i]=m;});
+  const d=TUNINGS.dulcimer.find(t=>t.id===state.tuningDulc)||TUNINGS.dulcimer[0];
+  d.open.forEach((m,i)=>{DULC_OPEN[3-i]=m;});
 }
+
+/* ================= instrument helpers ================= */
+function instOpen(inst){return inst==='guitar'?GUITAR_OPEN:inst==='bass'?BASS_OPEN:DULC_OPEN;}
+function instLowHigh(inst){return inst==='guitar'?[6,5,4,3,2,1]:inst==='bass'?[4,3,2,1]:[3,2,1];}
+function dispFret(inst,semi){return inst==='dulcimer'?(dulcLabelForSemi(semi)??semi):semi;}
 
 /* ================= theme-aware drawing colors ================= */
 const SVG_THEMES={
@@ -789,6 +866,7 @@ function textOn(hex){
 
 /* ================= diagram rendering ================= */
 function diagramSVG(v,inst){
+  if(inst==='dulcimer')return dulcDiagramSVG(v);
   const C=th();
   const stringsLoHi=inst==='guitar'?[6,5,4,3,2,1]:[4,3,2,1];
   const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
@@ -837,6 +915,57 @@ function staggerChildren(el){
   if(!el)return;
   [...el.children].forEach((c,i)=>{if(c.style)c.style.setProperty('--i',Math.min(i,8));});
 }
+function dulcDiagramSVG(v){
+  const C=th();
+  const strings=[3,2,1];
+  const semis=strings.map(s=>v[s][0]);
+  const hi=Math.max(...semis);
+  // window: from the fret line just below the lowest fingered note (or the nut) to the highest
+  const fingered=semis.filter(x=>x>0);
+  let startIdx=0;
+  if(fingered.length&&Math.min(...fingered)>0){
+    const lo=Math.min(...fingered);
+    for(let i=0;i<DULC_FRETS.length;i++)if(DULC_FRETS[i][1]<lo)startIdx=i;
+    if(hi<=N_TO_SEMI[4])startIdx=0;      // low shapes show from the nut
+  }
+  const startN=DULC_FRETS[startIdx][0];
+  const endIdx=DULC_FRETS.findIndex(f=>f[1]>=hi);
+  let lastIdx=Math.max(endIdx,startIdx);
+  while(lastIdx<DULC_FRETS.length-1&&DULC_FRETS[lastIdx][0]-startN<4)lastIdx++;
+  const endN=DULC_FRETS[lastIdx][0];
+  const ku=24, cw=30, left=44, top=26, bot=22;   // 24px per whole fret; .5 frets get half
+  const n=3;
+  const H=top+(endN-startN)*ku+bot;
+  const W=left+(n-1)*cw+20;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">`;
+  for(let i=0;i<n;i++)
+    s+=`<line x1="${left+i*cw}" y1="${top}" x2="${left+i*cw}" y2="${top+(endN-startN)*ku}" stroke="${C.grid}" stroke-width="1"/>`;
+  for(let i=startIdx;i<=lastIdx;i++){
+    const [fn,fs]=DULC_FRETS[i];
+    const y=top+(fn-startN)*ku;
+    const nut=(fn===0);
+    s+=`<line x1="${left}" y1="${y}" x2="${left+(n-1)*cw}" y2="${y}" stroke="${nut?C.nut:C.fret}" stroke-width="${nut?4:1}"/>`;
+    if(fn>0)
+      s+=`<text x="${left-7}" y="${y+3}" text-anchor="end" font-size="9" fill="${C.sub}" font-family="'Merriweather Sans',sans-serif">${dulcLabelForN(fn)}</text>`;
+  }
+  strings.forEach((str,i)=>{
+    const x=left+i*cw;
+    const [semi,role]=v[str];
+    const col=role==='R'?C.root:C.dot;
+    if(semi===0){
+      s+=`<text x="${x}" y="${top-9}" text-anchor="middle" font-size="12" fill="${col}" font-family="'Merriweather Sans',sans-serif">O</text>`;
+    }else{
+      const idx=DULC_FRETS.findIndex(f=>f[1]===semi);
+      const fn=DULC_FRETS[idx][0], prevN=DULC_FRETS[idx-1][0];
+      const y=top+((fn+prevN)/2-startN)*ku;
+      s+=`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/>`;
+    }
+    s+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${col}" font-family="'Merriweather Sans',sans-serif">${role.replace('b','♭').replace('#','♯')}</text>`;
+  });
+  s+='</svg>';
+  const tab=strings.map(str=>String(dulcLabelForSemi(v[str][0]))).join(' ');
+  return {svg:s,tab};
+}
 function chordCard(name,rn,v,inst){
   const d=document.createElement('div');
   d.className='card';
@@ -854,7 +983,7 @@ function chordCard(name,rn,v,inst){
 const state={
   theme:'dark',
   instrument:'guitar',
-  tuningGuitar:'standard', tuningBass:'standard',
+  tuningGuitar:'standard', tuningBass:'standard', tuningDulc:'dad', dulcNotation:'seq',
   tab:'prog',
   root:0,
   inversion:'root',
@@ -886,8 +1015,10 @@ function renderLibPosSelect(){
   const sel=document.getElementById('lib-pos-sel');
   const opts=state.instrument==='guitar'
     ? [['6','6th string (low E)'],['5','5th string (A)'],['4','4th string (D)']]
-    : [['E','E string'],['A','A string'],['Espread','Low E, skip A (spread)']];
-  const cur=state.instrument==='guitar'?state.libPosGuitar:state.libPosBass;
+    : state.instrument==='bass'
+    ? [['E','E string'],['A','A string'],['Espread','Low E, skip A (spread)']]
+    : [['D','Bass on low string']];
+  const cur=state.instrument==='guitar'?state.libPosGuitar:state.instrument==='bass'?state.libPosBass:'D';
   sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
 }
 function renderLibrary(){
@@ -903,7 +1034,9 @@ function renderLibrary(){
     const iv=bassIvFor(q.tones,state.inversion);
     const v=state.instrument==='guitar'
       ? guitarVoicing(state.root,q.tones,iv,parseInt(pos),minF)
-      : bassVoicing(state.root,q.tones,iv,pos,minF);
+      : state.instrument==='bass'
+      ? bassVoicing(state.root,q.tones,iv,pos,minF)
+      : dulcVoicing(state.root,q.tones,iv,minF);
     wrap.appendChild(chordCard(name,rn,v,state.instrument));
   });
   staggerChildren(wrap);
@@ -1075,6 +1208,7 @@ function slotChord(slot){
   return (slot.sub&&slot.sub!=='none')?applySubTo(base,slot.sub):base;
 }
 function slotPosition(slot){
+  if(state.instrument==='dulcimer')return 'D';
   const valid=state.instrument==='guitar'?['6','5','4']:['E','A','Espread'];
   return valid.includes(slot.pos)?slot.pos:(state.instrument==='guitar'?state.posGuitar:state.posBass);
 }
@@ -1083,8 +1217,9 @@ function slotRegionMin(slot){
 }
 function slotVoicing(slot,ch){
   const iv=bassIvFor(ch.tones,slot.inv);
-  const pos=slotPosition(slot);
   const minF=slotRegionMin(slot);
+  if(state.instrument==='dulcimer')return dulcVoicing(ch.pc,ch.tones,iv,minF);
+  const pos=slotPosition(slot);
   return state.instrument==='guitar'
     ? guitarVoicing(ch.pc,ch.tones,iv,parseInt(pos),minF)
     : bassVoicing(ch.pc,ch.tones,iv,pos,minF);
@@ -1122,7 +1257,9 @@ function renderSlots(){
     // 4) voicing position
     const posOpts=state.instrument==='guitar'
       ? [['6','6th string'],['5','5th string'],['4','4th string']]
-      : [['E','E string'],['A','A string'],['Espread','E, skip A']];
+      : state.instrument==='bass'
+      ? [['E','E string'],['A','A string'],['Espread','E, skip A']]
+      : [['D','Low string']];
     const curPos=posOpts.some(o=>o[0]===slot.pos)?slot.pos:posOpts[0][0];
     const posHtml=posOpts.map(([v,l])=>`<option value="${v}"${curPos===v?' selected':''}>• ${l}</option>`).join('');
     // 5) neck position
@@ -1201,6 +1338,7 @@ const DISPLAY_SCALES=SCALES.concat([
 const IV_LABEL={0:'R',1:'♭2',2:'2',3:'♭3',4:'3',5:'4',6:'♭5',7:'5',8:'♭6',9:'6',10:'♭7',11:'7'};
 
 function fretboardSVG(pcMap,inst){
+  if(inst==='dulcimer')return dulcFretboardSVG(pcMap);
   const C=th();
   const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
   const order=inst==='guitar'?[1,2,3,4,5,6]:[1,2,3,4];   // high string on top
@@ -1238,11 +1376,42 @@ function fretboardSVG(pcMap,inst){
   s+='</svg>';
   return s;
 }
+function dulcFretboardSVG(pcMap){
+  const C=th();
+  const order=[1,2,3];                    // melody on top
+  const ku=34, left=76, top=24, rh=32, botpad=40;   // 34px per whole fret; .5 frets half
+  const maxN=DULC_FRETS[DULC_FRETS.length-1][0];
+  const W=left+maxN*ku+18, H=top+(order.length-1)*rh+botpad;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="${W}" role="img" xmlns="http://www.w3.org/2000/svg">`;
+  DULC_FRETS.forEach(([fn,fs])=>{
+    const x=left+fn*ku;
+    s+=`<line x1="${x}" y1="${top-4}" x2="${x}" y2="${top+(order.length-1)*rh+4}" stroke="${fn===0?C.nut:C.fret}" stroke-width="${fn===0?5:1.5}"/>`;
+    if(fn>0)
+      s+=`<text x="${x}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="${C.sub}" font-family="'Merriweather Sans',sans-serif">${dulcLabelForN(fn)}</text>`;
+  });
+  order.forEach((str,i)=>{
+    const y=top+i*rh;
+    s+=`<line x1="${left}" y1="${y}" x2="${left+maxN*ku}" y2="${y}" stroke="${C.grid}" stroke-width="${0.9+(str-1)*0.4}"/>`;
+  });
+  order.forEach((str,i)=>{
+    const y=top+i*rh;
+    DULC_FRETS.forEach(([fn,fs],idx)=>{
+      const pc=(DULC_OPEN[str]+fs)%12;
+      if(!(pc in pcMap))return;
+      const x=fn===0?left-26:left+((fn+DULC_FRETS[idx-1][0])/2)*ku;
+      const {label,fill}=pcMap[pc];
+      s+=`<circle cx="${x}" cy="${y}" r="11" fill="${fill}"/>`;
+      s+=`<text x="${x}" y="${y+3.4}" text-anchor="middle" font-size="9.5" font-weight="600" fill="${textOn(fill)}" font-family="'Merriweather Sans',sans-serif">${label}</text>`;
+    });
+  });
+  s+='</svg>';
+  return s;
+}
 function renderScales(){
   const out=document.getElementById('scales-out');
   const sc=DISPLAY_SCALES.find(x=>x.id===state.scScale);
   const fl=flatsFor(state.scRoot,sc.steps);
-  const title=`${nn(state.scRoot,fl)} ${sc.name} — ${state.instrument==='guitar'?'guitar':'4-string bass'}`;
+  const title=`${nn(state.scRoot,fl)} ${sc.name} — ${state.instrument==='guitar'?'guitar':state.instrument==='bass'?'4-string bass':'mountain dulcimer'}`;
   const legendTones=sc.steps.map(st=>{
     const pc=(state.scRoot+st)%12;
     const col=st===0?th().root:st===7?th().fifth:th().tone;
@@ -1265,11 +1434,14 @@ function renderExPosSelect(){
   const sel=document.getElementById('ex-pos-sel');
   const opts=state.instrument==='guitar'
     ? [['6','Bass note on 6th string'],['5','Bass note on 5th string'],['4','Bass note on 4th string']]
-    : [['E','Bass note on E string'],['A','Bass note on A string'],['Espread','Low E, skip A (spread)']];
-  const cur=state.instrument==='guitar'?state.exPosGuitar:state.exPosBass;
+    : state.instrument==='bass'
+    ? [['E','Bass note on E string'],['A','Bass note on A string'],['Espread','Low E, skip A (spread)']]
+    : [['D','Bass on low string']];
+  const cur=state.instrument==='guitar'?state.exPosGuitar:state.instrument==='bass'?state.exPosBass:'D';
   sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
 }
 function exVoicing(pc,tones,iv){
+  if(state.instrument==='dulcimer')return dulcVoicing(pc,tones,iv);
   const pos=state.instrument==='guitar'?state.exPosGuitar:state.exPosBass;
   return state.instrument==='guitar'
     ? guitarVoicing(pc,tones,iv,parseInt(pos))
@@ -1277,17 +1449,43 @@ function exVoicing(pc,tones,iv){
 }
 function arpTabData(descending){
   const inst=state.instrument;
-  const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
+  const OPEN=instOpen(inst);
   const steps=SCALES.find(x=>x.id===state.exScale).steps;
   const fl=flatsFor(state.exRoot,steps);
-  const low=inst==='guitar'?6:4;
-  const f0=(((state.exRoot-OPEN[low])%12)+12)%12;
-  const tonic=OPEN[low]+f0;
+  const low=inst==='guitar'?6:inst==='bass'?4:3;
+  let f0,tonic;
+  if(inst==='dulcimer'){
+    // first reachable tonic on the bass string; if the key isn't on the
+    // diatonic fretboard, keep the true pitch and let unreachable notes show as ×
+    const rootPc=(((state.exRoot)%12)+12)%12;
+    const hit=DULC_FRETS.find(([n,se])=>((OPEN[3]+se)%12)===rootPc);
+    if(hit){f0=SEMI_TO_N[hit[1]];tonic=OPEN[3]+hit[1];}
+    else{
+      const se=(((rootPc-OPEN[3])%12)+12)%12;
+      tonic=OPEN[3]+se;
+      let anchor=0;
+      for(const [n2,s2] of DULC_FRETS){if(s2<=se)anchor=n2;}
+      f0=anchor;
+    }
+  }else{
+    f0=(((state.exRoot-OPEN[low])%12)+12)%12;
+    tonic=OPEN[low]+f0;
+  }
   const at=k=>steps[k%7]+Math.floor(k/7)*12;
-  const order=inst==='guitar'?[6,5,4,3,2,1]:[4,3,2,1];
+  const order=instLowHigh(inst);
   const devWin=f=>f<f0?f0-f:(f>f0+4?f-(f0+4):0);
   const mapNote=p=>{
     let best=null;
+    if(inst==='dulcimer'){
+      for(const s of order){
+        const se=p-OPEN[s];
+        if(se<0||!DULC_SEMIS.has(se))continue;
+        const n=SEMI_TO_N[se];
+        const d=devWin(n);
+        if(!best||d<best.d||(d===best.d&&n<best.f))best={s,f:se,n,d};
+      }
+      return best;   // may be null on a diatonic fretboard
+    }
     for(const s of order){
       const f=p-OPEN[s];
       if(f<0)continue;
@@ -1335,7 +1533,7 @@ function arpTabData(descending){
     const cap=OPEN[order[order.length-1]]+19;      // highest string open + 19 frets
     if(Math.max(...pitches)>cap&&Math.min(...pitches)-12>=OPEN[low])
       pitches=pitches.map(p=>p-12);
-    const tri=state.arpSkip?mapTriadSkip(pitches):pitches.map(mapNote);
+    const tri=(state.arpSkip&&inst!=='dulcimer')?mapTriadSkip(pitches):pitches.map(mapNote);
     const pat=state.arpPat==='straight'?[0,1,2]
             :state.arpPat==='return'?[0,1,2,1]
             :[0,2,1];
@@ -1350,8 +1548,8 @@ function arpTabData(descending){
 }
 function arpTabText(measures){
   const inst=state.instrument;
-  const disp=inst==='guitar'?[1,2,3,4,5,6]:[1,2,3,4];
-  const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
+  const disp=instLowHigh(inst).slice().reverse();
+  const OPEN=instOpen(inst);
   const SH=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
   const lab={};
   disp.forEach(s=>{
@@ -1366,7 +1564,12 @@ function arpTabText(measures){
   measures.forEach(m=>{
     disp.forEach(s=>{
       let seg='-';
-      m.notes.forEach(n=>{seg+=(n.s===s?('-'+n.f):'').padEnd(w,'-');});
+      m.notes.forEach(n=>{
+        let cell='';
+        if(n&&n.s===s)cell='-'+dispFret(inst,n.f);
+        else if(!n&&s===disp[0])cell='-×';        // unreachable on a diatonic fretboard
+        seg+=cell.padEnd(w,'-');
+      });
       lines[s]+=seg+'-|';
     });
     labelLine+=(' '+m.name).padEnd(m.notes.length*w+3,' ');
@@ -1403,7 +1606,7 @@ function renderExercise(){
   document.getElementById('ex-note-grips').hidden=arps;
   document.getElementById('arp-inv-ctl').hidden=!arps;
   document.getElementById('arp-pat-ctl').hidden=!arps;
-  document.getElementById('arp-skip-ctl').hidden=!arps;
+  document.getElementById('arp-skip-ctl').hidden=!arps||state.instrument==='dulcimer';
   document.getElementById('arp-playbar').hidden=!arps;
   const out=document.getElementById('ex-out');
   out.innerHTML='';
@@ -1820,12 +2023,12 @@ function highlightProgCard(i){
   document.querySelectorAll('#slots .prog-card').forEach((c,j)=>c.classList.toggle('playing',j===i));
 }
 function progChordMidis(){
-  const OPEN=state.instrument==='guitar'?GUITAR_OPEN:BASS_OPEN;
+  const OPEN=instOpen(state.instrument);
   return state.slots.map(slot=>{
     const ch=slotChord(slot);
     const v=slotVoicing(slot,ch);
     if(v)return Object.entries(v).map(([s,[f]])=>OPEN[s]+f).sort((a,b)=>a-b);
-    const base=state.instrument==='guitar'?48:36;
+    const base=state.instrument==='guitar'?48:state.instrument==='bass'?36:50;
     return ch.tones.map(t=>base+ch.pc+t[0]);
   });
 }
@@ -1879,10 +2082,10 @@ function runArpPass(seq,t0){
   },Math.max(0,(end-AudioEngine.ctx.currentTime)*1000-250));
 }
 function arpNoteSeq(){
-  const OPEN=state.instrument==='guitar'?GUITAR_OPEN:BASS_OPEN;
+  const OPEN=instOpen(state.instrument);
   const seq=[];
   [...arpTabData(false).measures,...arpTabData(true).measures].forEach(m=>{
-    m.notes.forEach((n,i)=>seq.push({midi:OPEN[n.s]+n.f,acc:i===0}));
+    m.notes.forEach((n,i)=>{if(n)seq.push({midi:OPEN[n.s]+n.f,acc:i===0});});
   });
   return seq;
 }
@@ -1937,7 +2140,7 @@ function exportProgMidi(){
       events.push({tick:(i+1)*bar-20,on:false,note:m});
     });
   });
-  const program=state.instrument==='guitar'?25:33;   // GM steel guitar / fingered bass
+  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:15;   // GM guitar / bass / dulcimer
   const scName=SCALES.find(s=>s.id===state.scale).name;
   const name=safeName(`progression-${nn(state.key,flatsFor(state.key,scaleObj().steps))}-${scName}-${state.tempo}bpm`)+'.mid';
   downloadMidi(midiFile(events,state.tempo,program),name);
@@ -1950,7 +2153,7 @@ function exportArpMidi(){
     events.push({tick:i*TPQ,on:true,note:e.midi,vel:e.acc?104:88});
     events.push({tick:i*TPQ+TPQ-40,on:false,note:e.midi});
   });
-  const program=state.instrument==='guitar'?25:33;
+  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:15;
   const steps=SCALES.find(x=>x.id===state.exScale);
   const name=safeName(`arp-drill-${nn(state.exRoot,flatsFor(state.exRoot,steps.steps))}-${steps.name}-${state.arpInv}-${state.arpPat}${state.arpSkip?'-skip':''}-${state.tempo}bpm`)+'.mid';
   downloadMidi(midiFile(events,state.tempo,program),name);
@@ -2019,7 +2222,7 @@ function validDegree(d){
 }
 function applyPayload(p){
   if(!p||!Array.isArray(p.slots)||!p.slots.length)throw new Error('not a progression file');
-  if(p.instrument==='guitar'||p.instrument==='bass')setInst(p.instrument);
+  if(['guitar','bass','dulcimer'].includes(p.instrument))setInst(p.instrument);
   if(SCALES.find(s=>s.id===p.scale))state.scale=p.scale;
   if(Number.isInteger(p.key))state.key=((p.key%12)+12)%12;
   state.seventh=!!p.seventh;
@@ -2030,7 +2233,7 @@ function applyPayload(p){
     degree:validDegree(s.degree)?s.degree:0,
     inv:['root','third','fifth'].includes(s.inv)?s.inv:'root',
     ctype:CTYPES.some(c=>c[0]===s.ctype)?s.ctype:(s.ctype==='global'?(p.seventh?'seventh':'triad'):'seventh'),
-    pos:(s.pos&&s.pos!=='global')?s.pos:(p.instrument==='bass'?'E':'6'),
+    pos:(s.pos&&s.pos!=='global')?s.pos:(p.instrument==='bass'?'E':p.instrument==='dulcimer'?'D':'6'),
     region:REGION_MIN[s.region]!==undefined?s.region:'any',
     sub:(s.sub&&(s.sub==='none'||SUBS.some(x=>x.id===s.sub)))?s.sub:'none'
   }));
@@ -2220,18 +2423,22 @@ document.getElementById('ex-pos-sel').addEventListener('change',e=>{
 
 document.getElementById('inst-guitar').addEventListener('click',()=>{setInst('guitar')});
 document.getElementById('inst-bass').addEventListener('click',()=>{setInst('bass')});
+document.getElementById('inst-dulc').addEventListener('click',()=>{setInst('dulcimer')});
 function setInst(i){
   if(AudioEngine.playing)AudioEngine.stop();
   const gp=['6','5','4'],bp=['E','A','Espread'];
   state.slots.forEach(s=>{
-    if(i==='bass'&&gp.includes(s.pos))s.pos=bp[gp.indexOf(s.pos)];
-    if(i==='guitar'&&bp.includes(s.pos))s.pos=gp[bp.indexOf(s.pos)];
+    if(i==='bass'){s.pos=bp[Math.max(0,gp.indexOf(s.pos))]||'E';}
+    else if(i==='guitar'){s.pos=gp[Math.max(0,bp.indexOf(s.pos))]||'6';}
+    else{s.pos='D';}
   });
   state.instrument=i;
   populateTuningSel();
   applyTuning();
+  syncDulcNotation();
   document.getElementById('inst-guitar').classList.toggle('on',i==='guitar');
   document.getElementById('inst-bass').classList.toggle('on',i==='bass');
+  document.getElementById('inst-dulc').classList.toggle('on',i==='dulcimer');
   render();
 }
 const TABS=['lib','prog','scales','ex','find'];
@@ -2333,16 +2540,29 @@ else{
   document.getElementById('save-note').hidden=false;
 }
 const tuningSel=document.getElementById('tuning-sel');
+function syncDulcNotation(){
+  const seg=document.getElementById('dulc-not-seg');
+  seg.hidden=state.instrument!=='dulcimer';
+  [...seg.children].forEach(b=>b.classList.toggle('on',b.dataset.not===state.dulcNotation));
+}
+document.getElementById('dulc-not-seg').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  state.dulcNotation=b.dataset.not;
+  syncDulcNotation();
+  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,n:state.dulcNotation}));}catch(e2){}
+  render();
+});
 function populateTuningSel(){
   const list=TUNINGS[state.instrument];
-  const cur=state.instrument==='guitar'?state.tuningGuitar:state.tuningBass;
+  const cur=state.instrument==='guitar'?state.tuningGuitar:state.instrument==='bass'?state.tuningBass:state.tuningDulc;
   tuningSel.innerHTML=list.map(t=>`<option value="${t.id}"${t.id===cur?' selected':''}>${t.name}</option>`).join('');
 }
 tuningSel.addEventListener('change',()=>{
   if(state.instrument==='guitar')state.tuningGuitar=tuningSel.value;
-  else state.tuningBass=tuningSel.value;
+  else if(state.instrument==='bass')state.tuningBass=tuningSel.value;
+  else state.tuningDulc=tuningSel.value;
   applyTuning();
-  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass}));}catch(e){}
+  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,n:state.dulcNotation}));}catch(e){}
   if(AudioEngine.playing)AudioEngine.stop();
   render();
 });
@@ -2350,9 +2570,12 @@ try{
   const tv=JSON.parse(localStorage.getItem('mast_tuning')||'{}');
   if(TUNINGS.guitar.some(t=>t.id===tv.g))state.tuningGuitar=tv.g;
   if(TUNINGS.bass.some(t=>t.id===tv.b))state.tuningBass=tv.b;
+  if(TUNINGS.dulcimer.some(t=>t.id===tv.d))state.tuningDulc=tv.d;
+  if(tv.n==='trad'||tv.n==='seq')state.dulcNotation=tv.n;
 }catch(e){}
 applyTuning();
 populateTuningSel();
+syncDulcNotation();
 function setTheme(t){
   state.theme=t==='light'?'light':'dark';
   document.documentElement.dataset.theme=state.theme;
