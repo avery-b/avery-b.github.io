@@ -86,16 +86,16 @@ button{font-family:inherit;cursor:pointer}
 
 /* ---------- header ---------- */
 header{
-  position:relative;display:flex;align-items:center;justify-content:center;
-  padding:28px 150px 20px;border-bottom:1px solid var(--line-dark);
+  padding:22px 30px 14px;border-bottom:1px solid var(--line-dark);
 }
+.hctrls{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px}
 .brand h1{
   font-family:var(--sans);font-weight:700;font-style:italic;
   font-size:28px;letter-spacing:.06em;text-transform:uppercase;
   line-height:1.15;color:var(--txt);text-align:center;
 }
-.hright{position:absolute;right:30px;top:50%;transform:translateY(-50%);display:flex;gap:10px;align-items:center}
-#theme-sel{position:absolute;left:30px;top:50%;transform:translateY(-50%)}
+.hright{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+
 
 /* instrument switch */
 .rocker{display:flex;border:1px solid var(--input-line);border-radius:6px;overflow:hidden;background:var(--input)}
@@ -178,6 +178,9 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
   margin:28px 0 14px;display:flex;align-items:center;gap:14px;
 }
 .rowtitle::after{content:"";flex:1;height:1px;background:var(--line-dark)}
+.modes-head{cursor:pointer;user-select:none}
+.modes-head .acc{font-family:var(--mono);font-size:17px;color:var(--muted);order:2}
+.modes-head:hover .acc{color:var(--txt)}
 .exdeg{margin-bottom:6px}
 .note{font-size:13px;color:var(--muted);max-width:72ch;line-height:1.6;margin-top:8px}
 
@@ -294,11 +297,12 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
 <body>
 
 <header>
-  <select id="theme-sel" aria-label="Color mode"></select>
   <div class="brand">
     <h1>Make a Song</h1>
   </div>
-  <div class="hright">
+  <div class="hctrls">
+    <select id="theme-sel" aria-label="Color mode"></select>
+    <div class="hright">
     <div class="seg" id="dulc-not-seg" role="group" aria-label="Dulcimer fret notation" hidden>
       <button data-not="seq" class="on">Frets 1·2·3</button>
       <button data-not="trad">1·1.5·2</button>
@@ -308,7 +312,10 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
       <button id="inst-guitar" class="on">Guitar</button>
       <button id="inst-bass">Bass</button>
       <button id="inst-dulc">Dulcimer</button>
+      <button id="inst-banjo">Banjo</button>
+      <button id="inst-piano">Piano</button>
     </div>
+  </div>
   </div>
 </header>
 
@@ -382,6 +389,32 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
       <div class="ctl">
         <label class="cap" for="prog-rhythm">Rhythm</label>
         <select id="prog-rhythm" aria-label="Rhythm accompaniment"></select>
+      </div>
+      <div class="ctl">
+        <label class="cap" for="prog-playmode">Playback</label>
+        <select id="prog-playmode">
+          <option value="chords">Full chords</option>
+          <option value="arp">Arpeggiate</option>
+        </select>
+      </div>
+      <div class="ctl" id="prog-arpmode-ctl" hidden>
+        <label class="cap" for="prog-arpmode">Arp mode</label>
+        <select id="prog-arpmode">
+          <option value="up">Up</option>
+          <option value="down">Down</option>
+          <option value="updown">Up-down</option>
+          <option value="random">Random</option>
+        </select>
+      </div>
+      <div class="ctl">
+        <label class="cap" for="prog-bassroot">Bass track</label>
+        <select id="prog-bassroot">
+          <option value="off">Off</option>
+          <option value="whole">Root each bar</option>
+          <option value="quarters">Root quarters</option>
+          <option value="root5">Root + 5th</option>
+          <option value="random">Random chord tones</option>
+        </select>
       </div>
       <div class="ctl">
         <label class="cap">Export</label>
@@ -581,6 +614,7 @@ input[type=range]{accent-color:var(--sel-bg);width:140px;vertical-align:middle}
 const GUITAR_OPEN={6:40,5:45,4:50,3:55,2:59,1:64};
 const BASS_OPEN={4:28,3:33,2:38,1:43};
 const DULC_OPEN={3:50,2:57,1:62};      // strings: 3=bass, 2=middle, 1=melody
+const BANJO_OPEN={5:67,4:50,3:55,2:59,1:62};   // 5-string banjo; string 5 = short drone
 /* Diatonic dulcimer fretboard incl. the 1.5 and 6.5 frets: [fret number, semitones from open] */
 const DULC_FRETS=[[0,0],[1,2],[1.5,3],[2,4],[3,5],[4,7],[5,9],[6,10],[6.5,11],
                   [7,12],[8,14],[9,16],[10,17],[11,19],[12,21],[13,22],[14,24]];
@@ -591,6 +625,29 @@ const SEMI_TO_IDX={};DULC_FRETS.forEach(([n,s],i)=>SEMI_TO_IDX[s]=i);
 const N_TO_IDX={};DULC_FRETS.forEach(([n,s],i)=>N_TO_IDX[n]=i);
 function dulcLabelForN(n){return state.dulcNotation==='trad'?n:N_TO_IDX[n];}
 function dulcLabelForSemi(s){return state.dulcNotation==='trad'?SEMI_TO_N[s]:SEMI_TO_IDX[s];}
+function banjoVoicing(rootPc,tones,bassIv,pos,minFret=0){
+  // fretted voicings live on strings 4..1; the short 5th string is an open drone,
+  // shown as O when its pitch class belongs to the chord
+  const attempt=(T,B)=>{
+    let use,strings;
+    if(pos==='3'){use=selectTones(T,B,3);strings=[3,2,1];}
+    else{
+      use=T.length===3?T:T;
+      strings=T.length===3?[4,3,2]:[4,3,2,1];
+      if(T.length>4){use=selectTones(T,B,4);}
+    }
+    return findVoicing(rootPc,use,B,strings,BANJO_OPEN,4,minFret);
+  };
+  let v=attempt(tones,bassIv);
+  if(!v&&canSimplify(tones))
+    v=attempt(tones.map(([iv,r])=>[iv%12,r]),bassIv%12);
+  if(v){
+    const dronePc=BANJO_OPEN[5]%12;
+    const hit=tones.find(([iv])=>((rootPc+iv)%12+12)%12===dronePc);
+    if(hit)v[5]=[0,hit[1]];
+  }
+  return v;
+}
 function dulcVoicing(rootPc,tones,bassIv,minFret=0){
   const use=selectTones(tones,bassIv,3);
   const roleOf={};use.forEach(t=>roleOf[t[0]]=t[1]);
@@ -849,6 +906,13 @@ const TUNINGS={
     {id:'half',    name:'Half step down',      open:[27,32,37,42]},
     {id:'whole',   name:'Whole step down',     open:[26,31,36,41]},
   ],
+  banjo:[
+    {id:'openg',    name:'Open G (g D G B D)',    open:[67,50,55,59,62]},
+    {id:'doublec',  name:'Double C (g C G C D)',  open:[67,48,55,60,62]},
+    {id:'sawmill',  name:'Sawmill (g D G C D)',   open:[67,50,55,60,62]},
+    {id:'opend',    name:'Open D (f♯ D F♯ A D)',  open:[66,50,54,57,62]},
+    {id:'standardc',name:'Standard C (g C G B D)',open:[67,48,55,59,62]},
+  ],
   dulcimer:[
     {id:'dad', name:'DAD (1-5-8 / Mixolydian)', open:[50,57,62]},
     {id:'daa', name:'DAA (1-5-5 / Ionian)',     open:[50,57,57]},
@@ -865,28 +929,30 @@ function applyTuning(){
   b.open.forEach((m,i)=>{BASS_OPEN[4-i]=m;});
   const d=TUNINGS.dulcimer.find(t=>t.id===state.tuningDulc)||TUNINGS.dulcimer[0];
   d.open.forEach((m,i)=>{DULC_OPEN[3-i]=m;});
+  const bj=TUNINGS.banjo.find(t=>t.id===state.tuningBanjo)||TUNINGS.banjo[0];
+  bj.open.forEach((m,i)=>{BANJO_OPEN[[5,4,3,2,1][i]]=m;});
 }
 
 /* ================= instrument helpers ================= */
-function instOpen(inst){return inst==='guitar'?GUITAR_OPEN:inst==='bass'?BASS_OPEN:DULC_OPEN;}
-function instLowHigh(inst){return inst==='guitar'?[6,5,4,3,2,1]:inst==='bass'?[4,3,2,1]:[3,2,1];}
+function instOpen(inst){return inst==='guitar'?GUITAR_OPEN:inst==='bass'?BASS_OPEN:inst==='piano'?null:inst==='banjo'?BANJO_OPEN:DULC_OPEN;}
+function instLowHigh(inst){return inst==='guitar'?[6,5,4,3,2,1]:inst==='bass'?[4,3,2,1]:inst==='banjo'?[5,4,3,2,1]:[3,2,1];}
 function dispFret(inst,semi){return inst==='dulcimer'?(dulcLabelForSemi(semi)??semi):semi;}
 
 /* ================= theme-aware drawing colors ================= */
 const SVG_THEMES={
   dark:{ ink:'#F5F4F1', sub:'#9C9A96', x:'#6E6C68', grid:'#8A8884', fret:'#3E3E3C',
          nut:'#F5F4F1', inlay:'#262624', dot:'#E8E6E1', root:'#D96C64', fifth:'#D9A94A',
-         tone:'#E8E6E1', green:'#7FBF8F' },
+         tone:'#E8E6E1', green:'#7FBF8F', out:'#E0BE55' },
   light:{ink:'#111111', sub:'#787774', x:'#B8B4AC', grid:'#787774', fret:'#D8D5CF',
          nut:'#111111', inlay:'#EFEDE8', dot:'#2F3437', root:'#9F2F2D', fifth:'#956400',
-         tone:'#2F3437', green:'#346538'}
+         tone:'#2F3437', green:'#346538', out:'#A8862B'}
 };
 SVG_THEMES.greys={ink:'#F2F2F0',sub:'#A3A3A0',x:'#6E6E6C',grid:'#8F8F8C',fret:'#3B3B3B',
   nut:'#F2F2F0',inlay:'#2E2E2E',dot:'#D2D2CF',root:'#FFFFFF',fifth:'#8F8F8C',
-  tone:'#D2D2CF',green:'#BDBDBA'};
+  tone:'#D2D2CF',green:'#BDBDBA',out:'#D9CE8A'};
 SVG_THEMES.blues={ink:'#EAF1F8',sub:'#8FA5B8',x:'#5E7488',grid:'#7E96AB',fret:'#233346',
   nut:'#EAF1F8',inlay:'#1B2A3C',dot:'#D6E4F1',root:'#79B8F0',fifth:'#A9C3DC',
-  tone:'#D6E4F1',green:'#8FD0B8'};
+  tone:'#D6E4F1',green:'#8FD0B8',out:'#E3C55A'};
 /* cosine-palette themes, derived from a + b·cos(2π(c·t + d)) */
 const COS_PALS={
   cos1:{a:[.65,.59,.03],b:[.28,.14,.16],c:[.72,.35,.51],d:[.03,.30,.18]},
@@ -937,7 +1003,7 @@ function buildCosTheme(id){
   };
   const svg={ink:'#F5F4F1',sub:hexRGB(sub),x:hexRGB(toLum(sub,.42)),grid:hexRGB(toLum(sub,.50)),
     fret:hexRGB(toLum(box,.22)),nut:'#F5F4F1',inlay:hexRGB(toLum(box,.12)),
-    dot:hexRGB(tone),root:hexRGB(root),fifth:hexRGB(fifth),tone:hexRGB(tone),green:hexRGB(green)};
+    dot:hexRGB(tone),root:hexRGB(root),fifth:hexRGB(fifth),tone:hexRGB(tone),green:hexRGB(green),out:'#E0BE55'};
   COS_CACHE[id]={vars,svg};
   return COS_CACHE[id];
 }
@@ -965,8 +1031,8 @@ function textOn(hex){
 }
 
 /* ================= diagram rendering ================= */
-function diagramSVG(v,inst){
-  if(inst==='dulcimer')return dulcDiagramSVG(v);
+function diagramSVG(v,inst,outSet){
+  if(inst==='dulcimer')return dulcDiagramSVG(v,outSet);
   const C=th();
   const stringsLoHi=inst==='guitar'?[6,5,4,3,2,1]:[4,3,2,1];
   const OPEN=inst==='guitar'?GUITAR_OPEN:BASS_OPEN;
@@ -993,12 +1059,15 @@ function diagramSVG(v,inst){
     const x=left+i*cw;
     if(str in v){
       const [f,role]=v[str];
-      const col=role==='R'?C.root:C.dot;
+      const pc=(((instOpen(inst)[str]+f)%12)+12)%12;
+      const isOut=outSet&&outSet.has(pc);
+      const col=isOut?C.out:(role==='R'?C.root:C.dot);
+      const ring=isOut&&role==='R'?` stroke="${C.root}" stroke-width="2.5"`:'';
       if(f===0){
         s+=`<text x="${x}" y="${top-9}" text-anchor="middle" font-size="12" fill="${col}" font-family="'Merriweather Sans',sans-serif">O</text>`;
       }else{
         const y=top+(f-start)*rh+rh/2;
-        s+=`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/>`;
+        s+=`<circle cx="${x}" cy="${y}" r="8" fill="${col}"${ring}/>`;
       }
       s+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${col}" font-family="'Merriweather Sans',sans-serif">${role.replace('b','♭').replace('#','♯')}</text>`;
     }else{
@@ -1015,7 +1084,7 @@ function staggerChildren(el){
   if(!el)return;
   [...el.children].forEach((c,i)=>{if(c.style)c.style.setProperty('--i',Math.min(i,8));});
 }
-function dulcDiagramSVG(v){
+function dulcDiagramSVG(v,outSet){
   const C=th();
   const strings=[3,2,1];
   const semis=strings.map(s=>v[s][0]);
@@ -1051,14 +1120,17 @@ function dulcDiagramSVG(v){
   strings.forEach((str,i)=>{
     const x=left+i*cw;
     const [semi,role]=v[str];
-    const col=role==='R'?C.root:C.dot;
+    const pc=(((DULC_OPEN[str]+semi)%12)+12)%12;
+    const isOut=outSet&&outSet.has(pc);
+    const col=isOut?C.out:(role==='R'?C.root:C.dot);
+    const ring=isOut&&role==='R'?` stroke="${C.root}" stroke-width="2.5"`:'';
     if(semi===0){
       s+=`<text x="${x}" y="${top-9}" text-anchor="middle" font-size="12" fill="${col}" font-family="'Merriweather Sans',sans-serif">O</text>`;
     }else{
       const idx=DULC_FRETS.findIndex(f=>f[1]===semi);
       const fn=DULC_FRETS[idx][0], prevN=DULC_FRETS[idx-1][0];
       const y=top+((fn+prevN)/2-startN)*ku;
-      s+=`<circle cx="${x}" cy="${y}" r="8" fill="${col}"/>`;
+      s+=`<circle cx="${x}" cy="${y}" r="8" fill="${col}"${ring}/>`;
     }
     s+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-size="10.5" font-weight="600" fill="${col}" font-family="'Merriweather Sans',sans-serif">${role.replace('b','♭').replace('#','♯')}</text>`;
   });
@@ -1066,7 +1138,61 @@ function dulcDiagramSVG(v){
   const tab=strings.map(str=>String(dulcLabelForSemi(v[str][0]))).join(' ');
   return {svg:s,tab};
 }
-function chordCard(name,rn,v,inst){
+function pianoSVG(midis,rootPc,outSet,names){
+  const C=th();
+  const set=new Set(midis);
+  const lo=Math.min(...midis),hi=Math.max(...midis);
+  let startC=Math.floor(lo/12)*12;
+  let endC=Math.ceil((hi+1)/12)*12;
+  while((endC-startC)/12<2)endC+=12;
+  const WHITE=[0,2,4,5,7,9,11],BLACK=[1,3,6,8,10];
+  const ww=20,wh=76,bw=12,bh=46;
+  const nWhite=(endC-startC)/12*7;
+  const W=nWhite*ww+2,H=wh+2;
+  const GREEN='#3E7B4B',RED='#B3362C';
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">`;
+  let wi=0;
+  for(let m=startC;m<endC;m++){
+    const pc=((m%12)+12)%12;
+    if(WHITE.includes(pc)){
+      const on=set.has(m);
+      const isOut=on&&outSet&&outSet.has(pc);
+      const YEL=th().out||'#E0BE55';
+      const fill=on?(isOut?YEL:(pc===rootPc?RED:GREEN)):'#FBFBF9';
+      const ring=(isOut&&pc===rootPc)?RED:'#2A2A2A';
+      const rw=(isOut&&pc===rootPc)?2.5:1;
+      s+=`<rect x="${1+wi*ww}" y="1" width="${ww}" height="${wh}" fill="${fill}" stroke="${ring}" stroke-width="${rw}"/>`;
+      if(names&&names[m])
+        s+=`<text x="${1+wi*ww+ww/2}" y="${wh-6}" text-anchor="middle" font-size="9" font-weight="600" fill="${on?textOn(fill):'#8A8A86'}" font-family="'Merriweather Sans',sans-serif">${names[m]}</text>`;
+      wi++;
+    }
+  }
+  wi=0;
+  for(let m=startC;m<endC;m++){
+    const pc=((m%12)+12)%12;
+    if(WHITE.includes(pc)){wi++;continue;}
+    const on=set.has(m);
+    const isOut=on&&outSet&&outSet.has(pc);
+    const YEL=th().out||'#E0BE55';
+    const fill=on?(isOut?YEL:(pc===rootPc?RED:GREEN)):'#161616';
+    const ring=(isOut&&pc===rootPc)?RED:'#2A2A2A';
+    const rw=(isOut&&pc===rootPc)?2.5:1;
+    s+=`<rect x="${1+wi*ww-bw/2}" y="1" width="${bw}" height="${bh}" fill="${fill}" stroke="${ring}" stroke-width="${rw}"/>`;
+    if(names&&names[m])
+      s+=`<text x="${1+wi*ww}" y="${bh-6}" text-anchor="middle" font-size="8" font-weight="600" fill="${on?textOn(fill):'#CFCFCB'}" font-family="'Merriweather Sans',sans-serif">${names[m]}</text>`;
+  }
+  s+='</svg>';
+  return s;
+}
+function pianoCard(name,rn,voi,outSet){
+  const d=document.createElement('div');
+  d.className='card';
+  const SH=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+  const notes=voi.midis.map(m=>SH[((m%12)+12)%12]).join(' · ');
+  d.innerHTML=`<h3>${name}</h3><div class="rn">${rn}</div>${pianoSVG(voi.midis,voi.rootPc,outSet)}<div class="tabline">${notes}</div>`;
+  return d;
+}
+function chordCard(name,rn,v,inst,outSet){
   const d=document.createElement('div');
   d.className='card';
   if(!v){
@@ -1074,7 +1200,7 @@ function chordCard(name,rn,v,inst){
     d.innerHTML=`<h3>${name}</h3><p>No compact shape within a 4-fret span here.<br>Try another inversion or position.</p>`;
     return d;
   }
-  const {svg,tab}=diagramSVG(v,inst);
+  const {svg,tab}=diagramSVG(v,inst,outSet);
   d.innerHTML=`<h3>${name}</h3><div class="rn">${rn||''}</div>${svg}<div class="tabline">${tab}</div>`;
   return d;
 }
@@ -1083,27 +1209,29 @@ function chordCard(name,rn,v,inst){
 const state={
   theme:'dark',
   instrument:'guitar',
-  tuningGuitar:'standard', tuningBass:'standard', tuningDulc:'dad', dulcNotation:'seq',
+  tuningGuitar:'standard', tuningBass:'standard', tuningDulc:'dad', tuningBanjo:'openg', dulcNotation:'seq',
   tab:'prog',
   root:0,
   inversion:'root',
-  libPosGuitar:'6', libPosBass:'E', libRegion:'any',
+  libPosGuitar:'6', libPosBass:'E', libPosBanjo:'4', libRegion:'any',
   key:0,
   scale:'major',
   seventh:true,
-  posGuitar:'6',
+  posGuitar:'6', posBanjo:'4',
   posBass:'E',
   scRoot:0, scScale:'major',
-  exRoot:0, exScale:'major', exInv:'root', exPosGuitar:'6', exPosBass:'E', exMode:'grips',
+  exRoot:0, exScale:'major', exInv:'root', exPosGuitar:'6', exPosBass:'E', exPosBanjo:'4', exMode:'grips',
   arpInv:'root', arpPat:'straight', arpSkip:false,
   findRoot:0, findNotes:[0],
   voice:'triangle', tempo:96, volume:70, loop:false, rhythm:'off',
+  progPlay:'chords', progArpMode:'up', bassMode:'off',
+  modesOpen:false,
   region:'any',
   slots:[
-    {degree:0,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none'},
-    {degree:5,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none'},
-    {degree:3,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none'},
-    {degree:4,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none'}
+    {degree:0,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none',pqual:'maj',pext:'M7',pinv:0},
+    {degree:5,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none',pqual:'min',pext:'m7',pinv:0},
+    {degree:3,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none',pqual:'maj',pext:'M7',pinv:0},
+    {degree:4,inv:'root',ctype:'seventh',pos:'6',region:'any',sub:'none',pqual:'maj',pext:'m7',pinv:0}
   ]
 };
 
@@ -1117,13 +1245,33 @@ function renderLibPosSelect(){
     ? [['6','6th string (low E)'],['5','5th string (A)'],['4','4th string (D)']]
     : state.instrument==='bass'
     ? [['E','E string'],['A','A string'],['Espread','Low E, skip A (spread)']]
+    : state.instrument==='banjo'
+    ? [['4','4th string (low)'],['3','3rd string']]
     : [['D','Bass on low string']];
-  const cur=state.instrument==='guitar'?state.libPosGuitar:state.instrument==='bass'?state.libPosBass:'D';
+  const cur=state.instrument==='guitar'?state.libPosGuitar:state.instrument==='bass'?state.libPosBass:state.instrument==='banjo'?state.libPosBanjo:'D';
   sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
 }
 function renderLibrary(){
-  renderLibPosSelect();
   const out=document.getElementById('lib-out');
+  const posCtl=document.getElementById('lib-pos-sel').parentElement;
+  const regCtl=document.getElementById('lib-region-sel').parentElement;
+  posCtl.hidden=state.instrument==='piano';
+  regCtl.hidden=state.instrument==='piano';
+  if(state.instrument==='piano'){
+    out.innerHTML='';
+    const rnLbl={root:'root position',third:'1st inversion',fifth:'2nd inversion'}[state.inversion];
+    const k={root:0,third:1,fifth:2}[state.inversion];
+    const wrap=document.createElement('div');wrap.className='cards';
+    LIB_QUALITIES.forEach(q=>{
+      const name=noteName(state.root,state.root)+q.suffix;
+      const voi=pianoVoicing({pc:state.root,tones:q.tones},{pinv:k});
+      wrap.appendChild(pianoCard(name,rnLbl,voi));
+    });
+    staggerChildren(wrap);
+    out.appendChild(wrap);
+    return;
+  }
+  renderLibPosSelect();
   out.innerHTML='';
   const rn={root:'root position',third:'3rd in the bass',fifth:'5th in the bass'}[state.inversion];
   const pos=state.instrument==='guitar'?state.libPosGuitar:state.libPosBass;
@@ -1136,6 +1284,8 @@ function renderLibrary(){
       ? guitarVoicing(state.root,q.tones,iv,parseInt(pos),minF)
       : state.instrument==='bass'
       ? bassVoicing(state.root,q.tones,iv,pos,minF)
+      : state.instrument==='banjo'
+      ? banjoVoicing(state.root,q.tones,iv,pos,minF)
       : dulcVoicing(state.root,q.tones,iv,minF);
     wrap.appendChild(chordCard(name,rn,v,state.instrument));
   });
@@ -1303,12 +1453,88 @@ function applySubTo(base,subId){
   return {pc,tones,suffix,rn:base.rn,subNote:subDiff(base,sd),
           name:nn(pc,sd.shift?true:fl)+suffix};
 }
+/* ---- piano (Orchid-style): scale-tone root + base quality + extension ---- */
+const PIANO_QUAL={
+  maj: {ivs:[0,4,7], suf:''},
+  min: {ivs:[0,3,7], suf:'m'},
+  dim: {ivs:[0,3,6], suf:'dim'},
+  sus2:{ivs:[0,2,7], suf:'sus2'},
+  sus4:{ivs:[0,5,7], suf:'sus4'},
+  aug: {ivs:[0,4,8], suf:'aug'},
+};
+const PIANO_EXT={none:[], '6':[9], 'm7':[10], 'M7':[11], '9':[10,14], '11':[10,14,17], '13':[10,14,21]};
+const PIANO_ROLE={0:'R',2:'2',3:'b3',4:'3',5:'4',6:'b5',7:'5',8:'#5',9:'6',10:'b7',11:'7',14:'9',17:'11',21:'13'};
+function pianoSuffix(q,ext){
+  if(ext==='none')return PIANO_QUAL[q].suf;
+  const T={
+    maj:{'6':'6','m7':'7','M7':'maj7','9':'9','11':'11','13':'13'},
+    min:{'6':'m6','m7':'m7','M7':'m(maj7)','9':'m9','11':'m11','13':'m13'},
+    dim:{'6':'°7','m7':'m7♭5','M7':'dim(maj7)','9':'m9♭5','11':'m11♭5','13':'m13♭5'},
+    aug:{'6':'aug6','m7':'7♯5','M7':'maj7♯5','9':'9♯5','11':'11♯5','13':'13♯5'},
+    sus2:{'6':'6sus2','m7':'7sus2','M7':'maj7sus2','9':'9sus2','11':'11sus2','13':'13sus2'},
+    sus4:{'6':'6sus4','m7':'7sus4','M7':'maj7sus4','9':'9sus4','11':'11sus4','13':'13sus4'},
+  };
+  return T[q][ext];
+}
+function pianoBase(slot){
+  const q=PIANO_QUAL[slot.pqual]?slot.pqual:'maj';
+  const ext=PIANO_EXT[slot.pext]?slot.pext:'none';
+  const deg=String(slot.degree);
+  const fl=flatsFor(state.key,scaleObj().steps);
+  let pc,acc=0,degIdx=0;
+  if(deg.startsWith('b:')){
+    const b=BORROWED.find(x=>x.id===deg.slice(2));
+    pc=(state.key+b.off)%12;
+    degIdx=0;acc=null;
+  }else{
+    degIdx=parseInt(deg);
+    pc=(state.key+scaleObj().steps[degIdx])%12;
+    acc=(scaleObj().steps[degIdx]%12)-MAJOR_STEPS[degIdx];
+  }
+  const ivs=[...PIANO_QUAL[q].ivs,...PIANO_EXT[ext]];
+  const tones=ivs.map(iv=>[iv,PIANO_ROLE[iv]||String(iv)]);
+  const suffix=pianoSuffix(q,ext);
+  let rn;
+  if(acc===null){rn=nn(pc,fl)+suffix;}
+  else{
+    rn=(acc===-1?'♭':acc===1?'♯':'')+ROMAN[degIdx];
+    if(q==='min'||q==='dim')rn=rn.toLowerCase().replace('♭','♭').replace('♯','♯');
+    if(q==='dim')rn+='°';
+    if(q==='aug')rn+='+';
+    let extTag={none:'','6':'6','m7':'7','M7':'Δ7','9':'9','11':'11','13':'13'}[ext];
+    if(q==='dim'&&ext==='6')extTag='7';
+    rn+=extTag;
+    if(q==='sus2'||q==='sus4')rn+=q;
+  }
+  return {pc,tones,suffix,rn,name:nn(pc,fl)+suffix};
+}
+function pianoDefaults(deg){
+  const d=String(deg);
+  if(d.startsWith('b:')){
+    const b=BORROWED.find(x=>x.id===d.slice(2));
+    return {pqual:(b&&b.minor)?'min':'maj',pext:'none'};
+  }
+  const info=diatonicType(scaleObj().steps,parseInt(d),'triad');
+  const t=info.tones[1][0],f=info.tones[2][0];
+  const q=(t===4&&f===8)?'aug':(t===3&&f===6)?'dim':(t===3)?'min':'maj';
+  return {pqual:q,pext:'none'};
+}
+function pianoVoicing(ch,slot){
+  const ivs=[...new Set(ch.tones.map(t=>t[0]))].sort((a,b)=>a-b);
+  const root=60+ch.pc;
+  let midis=ivs.map(iv=>root+iv);
+  const k=Math.min(parseInt(slot.pinv)||0,midis.length-1);
+  for(let i=0;i<k;i++)midis[i]+=12;
+  midis.sort((a,b)=>a-b);
+  return {midis,rootPc:ch.pc};
+}
 function slotChord(slot){
-  const base=baseSlotChord(slot);
+  const base=state.instrument==='piano'?pianoBase(slot):baseSlotChord(slot);
   return (slot.sub&&slot.sub!=='none')?applySubTo(base,slot.sub):base;
 }
 function slotPosition(slot){
   if(state.instrument==='dulcimer')return 'D';
+  if(state.instrument==='banjo')return ['4','3'].includes(slot.pos)?slot.pos:state.posBanjo;
   const valid=state.instrument==='guitar'?['6','5','4']:['E','A','Espread'];
   return valid.includes(slot.pos)?slot.pos:(state.instrument==='guitar'?state.posGuitar:state.posBass);
 }
@@ -1320,6 +1546,7 @@ function slotVoicing(slot,ch){
   const minF=slotRegionMin(slot);
   if(state.instrument==='dulcimer')return dulcVoicing(ch.pc,ch.tones,iv,minF);
   const pos=slotPosition(slot);
+  if(state.instrument==='banjo')return banjoVoicing(ch.pc,ch.tones,iv,pos,minF);
   return state.instrument==='guitar'
     ? guitarVoicing(ch.pc,ch.tones,iv,parseInt(pos),minF)
     : bassVoicing(ch.pc,ch.tones,iv,pos,minF);
@@ -1343,6 +1570,51 @@ function renderSlots(){
       const pc=(state.key+b.off)%12;
       degOpts+=`<option value="${slot.degree}" selected>• ${b.rnT} — ${nn(pc,b.flat||fl)} (borrowed)</option>`;
     }
+    if(state.instrument==='piano'){
+      if(!PIANO_QUAL[slot.pqual]||!PIANO_EXT[slot.pext]){
+        const def=pianoDefaults(slot.degree);
+        if(!PIANO_QUAL[slot.pqual])slot.pqual=def.pqual;
+        if(!PIANO_EXT[slot.pext])slot.pext='none';
+        if(slot.pinv===undefined)slot.pinv=0;
+      }
+      const base=pianoBase(slot);
+      const qualOpts=[['maj','Major'],['min','Minor'],['dim','Diminished'],['sus2','Sus2'],['sus4','Sus4'],['aug','Augmented']]
+        .map(([v,l])=>`<option value="${v}"${slot.pqual===v?' selected':''}>• ${l}</option>`).join('');
+      const extOpts=[['none','No extension'],['6','6th'],['m7','Minor 7th'],['M7','Major 7th'],['9','9th'],['11','11th'],['13','13th']]
+        .map(([v,l])=>`<option value="${v}"${slot.pext===v?' selected':''}>• ${l}</option>`).join('');
+      const nTones=base.tones.length;
+      const invNames=['Root position','1st inversion','2nd inversion','3rd inversion','4th inversion','5th inversion'];
+      const invOpts2=invNames.slice(0,nTones)
+        .map((l,k)=>`<option value="${k}"${(parseInt(slot.pinv)||0)===k?' selected':''}>• ${l}</option>`).join('');
+      const curSub=SUBS.find(x=>x.id===slot.sub);
+      const btnLabel=curSub?curSub.label:'No substitution';
+      const subItems=[`<div class="dd-opt${(!curSub)?' sel':''}" role="option" data-si="${idx}" data-val="none" aria-selected="${!curSub}">No substitution</div>`]
+        .concat(SUBS.map(sd=>{
+          const diff=subDiff(base,sd);
+          const sel=slot.sub===sd.id;
+          return `<div class="dd-opt${sel?' sel':''}" role="option" data-si="${idx}" data-val="${sd.id}" aria-selected="${sel}"><span>${sd.label} <span class="diff">${diff}</span></span></div>`;
+        })).join('');
+      d.innerHTML=`
+        <div class="shead"><span>Chord ${idx+1}</span>
+          <button title="Remove chord ${idx+1}" aria-label="Remove chord ${idx+1}" data-del="${idx}">✕</button></div>
+        <div class="fields">
+          <select data-deg="${idx}" aria-label="Scale tone for chord ${idx+1}">${degOpts}</select>
+          <select data-pqual="${idx}" aria-label="Chord quality for chord ${idx+1}">${qualOpts}</select>
+          <select data-pext="${idx}" aria-label="Extension for chord ${idx+1}">${extOpts}</select>
+          <select data-pinv="${idx}" aria-label="Inversion for chord ${idx+1}">${invOpts2}</select>
+          <div class="slot-divider"></div>
+          <div class="dd">
+            <button type="button" class="dd-btn" data-ddbtn="${idx}" aria-haspopup="listbox" aria-expanded="false">${btnLabel}</button>
+            <div class="dd-pop" role="listbox" aria-label="Substitution for chord ${idx+1}" hidden>${subItems}</div>
+          </div>
+        </div>`;
+      col.appendChild(d);
+      const holder=document.createElement('div');
+      holder.className='slot-cardholder';holder.dataset.ci=idx;
+      col.appendChild(holder);
+      box.appendChild(col);
+      return;
+    }
     // 2) chord type
     const type=slotType(slot);
     const typeOpts=CTYPES.map(([v,l])=>`<option value="${v}"${type===v?' selected':''}>• ${l}</option>`).join('');
@@ -1359,6 +1631,8 @@ function renderSlots(){
       ? [['6','6th string'],['5','5th string'],['4','4th string']]
       : state.instrument==='bass'
       ? [['E','E string'],['A','A string'],['Espread','E, skip A']]
+      : state.instrument==='banjo'
+      ? [['4','4th string'],['3','3rd string']]
       : [['D','Low string']];
     const curPos=posOpts.some(o=>o[0]===slot.pos)?slot.pos:posOpts[0][0];
     const posHtml=posOpts.map(([v,l])=>`<option value="${v}"${curPos===v?' selected':''}>• ${l}</option>`).join('');
@@ -1408,11 +1682,20 @@ function renderSlots(){
 function renderProgression(){
   let holders=document.querySelectorAll('#slots .slot-cardholder');
   if(holders.length!==state.slots.length){renderSlots();holders=document.querySelectorAll('#slots .slot-cardholder');}
+  const scalePcs=new Set(scaleObj().steps.map(s=>(((state.key+s)%12)+12)%12));
   state.slots.forEach((slot,i)=>{
     const ch=slotChord(slot);
-    const v=slotVoicing(slot,ch);
-    const invLabel={root:'root position',third:'3rd in bass',fifth:'5th in bass'}[slot.inv];
-    const card=chordCard(ch.name,`${ch.rn} · ${invLabel}`,v,state.instrument);
+    const outSet=new Set(ch.tones.map(t=>(((ch.pc+t[0])%12)+12)%12).filter(pc=>!scalePcs.has(pc)));
+    let card;
+    if(state.instrument==='piano'){
+      const voi=pianoVoicing(ch,slot);
+      const invNames=['root position','1st inversion','2nd inversion','3rd inversion','4th inversion','5th inversion'];
+      card=pianoCard(ch.name,`${ch.rn} · ${invNames[Math.min(parseInt(slot.pinv)||0,ch.tones.length-1)]}`,voi,outSet);
+    }else{
+      const v=slotVoicing(slot,ch);
+      const invLabel={root:'root position',third:'3rd in bass',fifth:'5th in bass'}[slot.inv];
+      card=chordCard(ch.name,`${ch.rn} · ${invLabel}`,v,state.instrument,outSet);
+    }
     card.classList.add('wide','prog-card');
     if(!holders[i])return;
     holders[i].innerHTML='';
@@ -1423,8 +1706,10 @@ function renderPosSelect(){
   const sel=document.getElementById('pos-sel');
   const opts=state.instrument==='guitar'
     ? [['6','Bass note on 6th string'],['5','Bass note on 5th string'],['4','Bass note on 4th string']]
+    : state.instrument==='banjo'
+    ? [['4','Bass note on 4th string'],['3','Bass note on 3rd string']]
     : [['E','Bass note on E string'],['A','Bass note on A string'],['Espread','Low E, skip A (spread)']];
-  const cur=state.instrument==='guitar'?state.posGuitar:state.posBass;
+  const cur=state.instrument==='guitar'?state.posGuitar:state.instrument==='banjo'?state.posBanjo:state.posBass;
   sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
 }
 function renderBuilder(){renderPosSelect();renderSlots();renderProgression();renderModes();refreshKeyStrip();}
@@ -1457,7 +1742,8 @@ function fretboardSVG(pcMap,inst){
   }
   order.forEach((str,i)=>{
     const y=top+i*rh;
-    s+=`<line x1="${left}" y1="${y}" x2="${left+NF*cw}" y2="${y}" stroke="${C.grid}" stroke-width="${0.8+ (inst==='guitar'?(str-1)*0.22:(str-1)*0.35)}"/>`;
+    const x1=(inst==='banjo'&&str===5)?left+5*cw:left;
+    s+=`<line x1="${x1}" y1="${y}" x2="${left+NF*cw}" y2="${y}" stroke="${C.grid}" stroke-width="${0.8+ (inst==='guitar'?(str-1)*0.22:(str-1)*0.35)}"/>`;
   });
   [3,5,7,9,12,15].forEach(f=>{
     s+=`<text x="${inlay(f)}" y="${H-8}" text-anchor="middle" font-size="12" fill="${C.sub}" font-family="'Merriweather Sans',sans-serif">${f}</text>`;
@@ -1467,6 +1753,7 @@ function fretboardSVG(pcMap,inst){
     for(let f=0;f<=NF;f++){
       const pc=(OPEN[str]+f)%12;
       if(!(pc in pcMap))continue;
+      if(inst==='banjo'&&str===5&&f>0&&f<6)continue;   // short string has no frets 1-5
       const x=f===0?left-26:left+(f-0.5)*cw;
       const {label,fill}=pcMap[pc];
       s+=`<circle cx="${x}" cy="${y}" r="11.5" fill="${fill}"/>`;
@@ -1511,7 +1798,24 @@ function renderScales(){
   const out=document.getElementById('scales-out');
   const sc=DISPLAY_SCALES.find(x=>x.id===state.scScale);
   const fl=flatsFor(state.scRoot,sc.steps);
-  const title=`${nn(state.scRoot,fl)} ${sc.name} — ${state.instrument==='guitar'?'guitar':state.instrument==='bass'?'4-string bass':'mountain dulcimer'}`;
+  const instName=state.instrument==='guitar'?'guitar':state.instrument==='bass'?'4-string bass':state.instrument==='piano'?'piano':state.instrument==='banjo'?'5-string banjo':'mountain dulcimer';
+  const title=`${nn(state.scRoot,fl)} ${sc.name} — ${instName}`;
+  if(state.instrument==='piano'){
+    const base=60+((state.scRoot%12)+12)%12;
+    const midis=[...sc.steps.map(s=>base+s),...sc.steps.map(s=>base+12+s),base+24];
+    const names={};midis.forEach(m=>names[m]=nn(((m%12)+12)%12,fl));
+    const legendTones=sc.steps.map(st=>{
+      const pc=(state.scRoot+st)%12;
+      const col=st===0?'#B3362C':'#3E7B4B';
+      return `<span class="li"><span class="dot" style="background:${col}"></span>${nn(pc,fl)} <span style="color:var(--ink-soft)">(${IV_LABEL[st]})</span></span>`;
+    }).join('');
+    out.innerHTML=`
+    <div class="rowtitle">${title}</div>
+    <div class="fbcard">${pianoSVG(midis,((state.scRoot%12)+12)%12,undefined,names)}
+      <div class="legend">${legendTones}</div>
+    </div>`;
+    return;
+  }
   const legendTones=sc.steps.map(st=>{
     const pc=(state.scRoot+st)%12;
     const col=st===0?th().root:st===7?th().fifth:th().tone;
@@ -1536,12 +1840,15 @@ function renderExPosSelect(){
     ? [['6','Bass note on 6th string'],['5','Bass note on 5th string'],['4','Bass note on 4th string']]
     : state.instrument==='bass'
     ? [['E','Bass note on E string'],['A','Bass note on A string'],['Espread','Low E, skip A (spread)']]
+    : state.instrument==='banjo'
+    ? [['4','Bass note on 4th string'],['3','Bass note on 3rd string']]
     : [['D','Bass on low string']];
-  const cur=state.instrument==='guitar'?state.exPosGuitar:state.instrument==='bass'?state.exPosBass:'D';
+  const cur=state.instrument==='guitar'?state.exPosGuitar:state.instrument==='bass'?state.exPosBass:state.instrument==='banjo'?state.exPosBanjo:'D';
   sel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
 }
 function exVoicing(pc,tones,iv){
   if(state.instrument==='dulcimer')return dulcVoicing(pc,tones,iv);
+  if(state.instrument==='banjo')return banjoVoicing(pc,tones,iv,state.exPosBanjo);
   const pos=state.instrument==='guitar'?state.exPosGuitar:state.exPosBass;
   return state.instrument==='guitar'
     ? guitarVoicing(pc,tones,iv,parseInt(pos))
@@ -1554,7 +1861,10 @@ function arpTabData(descending){
   const fl=flatsFor(state.exRoot,steps);
   const low=inst==='guitar'?6:inst==='bass'?4:3;
   let f0,tonic;
-  if(inst==='dulcimer'){
+  if(inst==='piano'){
+    f0=0;
+    tonic=60+(((state.exRoot)%12)+12)%12;
+  }else if(inst==='dulcimer'){
     // first reachable tonic on the bass string; if the key isn't on the
     // diatonic fretboard, keep the true pitch and let unreachable notes show as ×
     const rootPc=(((state.exRoot)%12)+12)%12;
@@ -1575,6 +1885,7 @@ function arpTabData(descending){
   const order=instLowHigh(inst);
   const devWin=f=>f<f0?f0-f:(f>f0+4?f-(f0+4):0);
   const mapNote=p=>{
+    if(inst==='piano')return {s:0,f:p,d:0};
     let best=null;
     if(inst==='dulcimer'){
       for(const s of order){
@@ -1630,10 +1941,10 @@ function arpTabData(descending){
             :state.arpInv==='first'?[b,c,a+12]
             :[c,a+12,b+12];
     let pitches=seq.map(iv=>tonic+iv);
-    const cap=OPEN[order[order.length-1]]+19;      // highest string open + 19 frets
-    if(Math.max(...pitches)>cap&&Math.min(...pitches)-12>=OPEN[low])
+    const cap=inst==='piano'?96:OPEN[order[order.length-1]]+19;      // piano top / highest string open + 19 frets
+    if(Math.max(...pitches)>cap&&Math.min(...pitches)-12>=(inst==='piano'?21:OPEN[low]))
       pitches=pitches.map(p=>p-12);
-    const tri=(state.arpSkip&&inst!=='dulcimer')?mapTriadSkip(pitches):pitches.map(mapNote);
+    const tri=(state.arpSkip&&inst!=='dulcimer'&&inst!=='piano')?mapTriadSkip(pitches):pitches.map(mapNote);
     const pat=state.arpPat==='straight'?[0,1,2]
             :state.arpPat==='return'?[0,1,2,1]
             :[0,2,1];
@@ -1648,6 +1959,14 @@ function arpTabData(descending){
 }
 function arpTabText(measures){
   const inst=state.instrument;
+  if(inst==='piano'){
+    const SH=['C','C♯','D','E♭','E','F','F♯','G','A♭','A','B♭','B'];
+    const noteName2=m=>SH[((m%12)+12)%12]+(Math.floor(m/12)-1);
+    const w=Math.max(...measures.map(m=>m.name.length))+1;
+    return measures.map(m=>
+      m.name.padEnd(w)+'| '+m.notes.map(n=>n?noteName2(n.f):'×').join('  ')
+    ).join('\n');
+  }
   const disp=instLowHigh(inst).slice().reverse();
   const OPEN=instOpen(inst);
   const SH=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -1699,14 +2018,15 @@ function renderArpeggios(out){
   out.appendChild(c2);
 }
 function renderExercise(){
-  renderExPosSelect();
+  const isPiano=state.instrument==='piano';
+  if(!isPiano)renderExPosSelect();
   const arps=state.exMode==='arps';
   document.getElementById('ex-inv-ctl').hidden=arps;
-  document.getElementById('ex-pos-ctl').hidden=arps;
+  document.getElementById('ex-pos-ctl').hidden=arps||isPiano;
   document.getElementById('ex-note-grips').hidden=arps;
   document.getElementById('arp-inv-ctl').hidden=!arps;
   document.getElementById('arp-pat-ctl').hidden=!arps;
-  document.getElementById('arp-skip-ctl').hidden=!arps||state.instrument==='dulcimer';
+  document.getElementById('arp-skip-ctl').hidden=!arps||state.instrument==='dulcimer'||isPiano;
   document.getElementById('arp-playbar').hidden=!arps;
   const out=document.getElementById('ex-out');
   out.innerHTML='';
@@ -1725,8 +2045,13 @@ function renderExercise(){
       out.appendChild(t);
       const wrap=document.createElement('div');wrap.className='cards';
       ['root','third','fifth'].forEach(inv=>{
-        const iv=bassIvFor(info.tones,inv);
-        wrap.appendChild(chordCard(name,invLabel[inv],exVoicing(pc,info.tones,iv),state.instrument));
+        if(isPiano){
+          const voi=pianoVoicing({pc,tones:info.tones},{pinv:{root:0,third:1,fifth:2}[inv]});
+          wrap.appendChild(pianoCard(name,invLabel[inv],voi));
+        }else{
+          const iv=bassIvFor(info.tones,inv);
+          wrap.appendChild(chordCard(name,invLabel[inv],exVoicing(pc,info.tones,iv),state.instrument));
+        }
       });
       staggerChildren(wrap);
       out.appendChild(wrap);
@@ -1743,8 +2068,13 @@ function renderExercise(){
       const pc=(state.exRoot+info.rootOffset)%12;
       const name=nn(pc,fl)+info.suffix;
       const inv=state.exInv==='cycle'?['root','third','fifth'][d%3]:state.exInv;
-      const iv=bassIvFor(info.tones,inv);
-      wrap.appendChild(chordCard(name,`${info.rn} · ${invLabel[inv]}`,exVoicing(pc,info.tones,iv),state.instrument));
+      if(isPiano){
+        const voi=pianoVoicing({pc,tones:info.tones},{pinv:{root:0,third:1,fifth:2}[inv]});
+        wrap.appendChild(pianoCard(name,`${info.rn} · ${invLabel[inv]}`,voi));
+      }else{
+        const iv=bassIvFor(info.tones,inv);
+        wrap.appendChild(chordCard(name,`${info.rn} · ${invLabel[inv]}`,exVoicing(pc,info.tones,iv),state.instrument));
+      }
     }
     staggerChildren(wrap);
     out.appendChild(wrap);
@@ -1811,8 +2141,10 @@ function renderModes(){
     </div>`;
   }).join('');
   box.innerHTML=`
-    <div class="rowtitle">Modes of ${nn(state.key,fl)} ${scName}</div>
-    <div class="cards">${cards}</div>`;
+    <div class="rowtitle modes-head" id="modes-head" role="button" tabindex="0" aria-expanded="${state.modesOpen}">
+      <span>Modes of ${nn(state.key,fl)} ${scName}</span><span class="acc">${state.modesOpen?'\u2212':'+'}</span>
+    </div>
+    <div class="cards"${state.modesOpen?'':' hidden'}>${cards}</div>`;
   staggerChildren(box.querySelector('.cards'));
 }
 
@@ -1923,7 +2255,19 @@ function applyPreset(idx){
   state.scale=p.scale;
   state.seventh=p.seventh;
   const dp=state.instrument==='guitar'?state.posGuitar:state.posBass;
-  state.slots=p.degrees.map(d=>({degree:d,inv:'root',ctype:p.seventh?'seventh':'triad',pos:dp,region:state.region,sub:'none'}));
+  state.slots=p.degrees.map(d=>{
+    const s={degree:d,inv:'root',ctype:p.seventh?'seventh':'triad',pos:dp,region:state.region,sub:'none',pinv:0};
+    const def=pianoDefaults(d);
+    s.pqual=def.pqual;
+    s.pext='none';
+    if(p.seventh&&!String(d).startsWith('b:')){
+      const st=diatonicType(scaleObj().steps,parseInt(d),'seventh');
+      const sv=st.tones[3][0];
+      s.pext=sv===11?'M7':'m7';
+      if(s.pqual==='dim'&&sv===9)s.pext='6';
+    }else if(p.seventh){s.pext='m7';}
+    return s;
+  });
   // sync visible controls
   document.getElementById('scale-sel').value=p.scale;
   render();
@@ -2123,16 +2467,26 @@ function highlightProgCard(i){
   document.querySelectorAll('#slots .prog-card').forEach((c,j)=>c.classList.toggle('playing',j===i));
 }
 function progChordMidis(){
+  if(state.instrument==='piano'){
+    return state.slots.map(slot=>pianoVoicing(slotChord(slot),slot).midis);
+  }
   const OPEN=instOpen(state.instrument);
   return state.slots.map(slot=>{
     const ch=slotChord(slot);
     const v=slotVoicing(slot,ch);
     if(v)return Object.entries(v).map(([s,[f]])=>OPEN[s]+f).sort((a,b)=>a-b);
-    const base=state.instrument==='guitar'?48:state.instrument==='bass'?36:50;
+    const base=state.instrument==='guitar'?48:state.instrument==='bass'?36:state.instrument==='banjo'?55:50;
     return ch.tones.map(t=>base+ch.pc+t[0]);
   });
 }
-function runProgPass(chords,t0){
+function arpIndex(k,n,mode){
+  if(n<=1)return 0;
+  if(mode==='down')return (n-1)-(k%n);
+  if(mode==='updown'){const p=2*n-2;const m=k%p;return m<n?m:p-m;}
+  if(mode==='random')return Math.floor(Math.random()*n);
+  return k%n;
+}
+function runProgPass(chords,t0,roots){
   const beat=60/state.tempo,bar=beat*4;
   const rhythm=state.rhythm;
   const beatObj=rhythm!=='off'&&rhythm!=='click'?BEATS.find(b=>b.id===rhythm):null;
@@ -2141,14 +2495,35 @@ function runProgPass(chords,t0){
     const t=t0+i*bar;
     if(rhythm==='click')for(let b=0;b<4;b++)AudioEngine.clickAt(t+b*beat,b===0);
     else if(beatObj)drumBarAt(t,bar,beatObj);
-    midis.forEach((m,j)=>AudioEngine.noteAt(t+j*0.035,m,bar*0.95));
+    if(state.bassMode!=='off'&&roots&&roots[i]){
+      const b=roots[i];
+      const rootM=36+b.pc;
+      const fifthIv=(b.ivs.find(iv=>iv%12===7)??7)%12;
+      if(state.bassMode==='whole')AudioEngine.noteAt(t+0.001,rootM,bar*0.95);
+      else if(state.bassMode==='quarters')
+        for(let q=0;q<4;q++)AudioEngine.noteAt(t+q*beat+0.001,rootM,beat*0.9);
+      else if(state.bassMode==='root5')
+        for(let q=0;q<4;q++)AudioEngine.noteAt(t+q*beat+0.001,q%2?36+((b.pc+fifthIv)%12):rootM,beat*0.9);
+      else if(state.bassMode==='random')
+        for(let q=0;q<4;q++){
+          const iv=b.ivs[Math.floor(Math.random()*b.ivs.length)]%12;
+          AudioEngine.noteAt(t+q*beat+0.001,36+((b.pc+iv)%12),beat*0.9);
+        }
+    }
+    if(state.progPlay==='arp'&&midis.length){
+      const asc=[...midis].sort((a,b)=>a-b);
+      for(let k=0;k<8;k++)
+        AudioEngine.noteAt(t+k*(beat/2),asc[arpIndex(k,asc.length,state.progArpMode)],beat*0.48);
+    }else{
+      midis.forEach((m,j)=>AudioEngine.noteAt(t+j*0.035,m,bar*0.95));
+    }
     AudioEngine.later(()=>highlightProgCard(i),(t-AudioEngine.ctx.currentTime)*1000);
   });
   const end=t0+chords.length*bar;
   // fire ahead of the boundary and hand the exact end time to the next pass
   AudioEngine.later(()=>{
     if(!AudioEngine.playing)return;
-    if(state.loop)runProgPass(chords,end);
+    if(state.loop)runProgPass(chords,end,roots);
     else AudioEngine.later(()=>{if(AudioEngine.playing)AudioEngine.stop();},
       Math.max(0,(end-AudioEngine.ctx.currentTime)*1000+20));
   },Math.max(0,(end-AudioEngine.ctx.currentTime)*1000-250));
@@ -2158,7 +2533,7 @@ function playProgression(){
   if(!state.slots.length)return;
   AudioEngine.ensure();
   AudioEngine.playing=true;AudioEngine.source='prog';updatePlayButtons();
-  runProgPass(progChordMidis());
+  runProgPass(progChordMidis(),undefined,state.slots.map(s=>{const ch=slotChord(s);return {pc:ch.pc,ivs:ch.tones.map(t=>t[0])};}));
 }
 function runArpPass(seq,t0){
   const beat=60/state.tempo,bar=beat*4;
@@ -2185,7 +2560,10 @@ function arpNoteSeq(){
   const OPEN=instOpen(state.instrument);
   const seq=[];
   [...arpTabData(false).measures,...arpTabData(true).measures].forEach(m=>{
-    m.notes.forEach((n,i)=>{if(n)seq.push({midi:OPEN[n.s]+n.f,acc:i===0});});
+    m.notes.forEach((n,i)=>{
+      if(!n)return;
+      seq.push({midi:state.instrument==='piano'?n.f:OPEN[n.s]+n.f,acc:i===0});
+    });
   });
   return seq;
 }
@@ -2235,12 +2613,37 @@ function exportProgMidi(){
   if(!chords.length)return;
   const bar=TPQ*4, events=[];
   chords.forEach((midis,i)=>{
-    midis.forEach((m,j)=>{
-      events.push({tick:i*bar+j*10,on:true,note:m,vel:96});
-      events.push({tick:(i+1)*bar-20,on:false,note:m});
-    });
+    if(state.bassMode!=='off'&&roots&&roots[i]){
+      const b=roots[i];
+      const rootM=36+b.pc;
+      const fifthIv=(b.ivs.find(iv=>iv%12===7)??7)%12;
+      if(state.bassMode==='whole')AudioEngine.noteAt(t+0.001,rootM,bar*0.95);
+      else if(state.bassMode==='quarters')
+        for(let q=0;q<4;q++)AudioEngine.noteAt(t+q*beat+0.001,rootM,beat*0.9);
+      else if(state.bassMode==='root5')
+        for(let q=0;q<4;q++)AudioEngine.noteAt(t+q*beat+0.001,q%2?36+((b.pc+fifthIv)%12):rootM,beat*0.9);
+      else if(state.bassMode==='random')
+        for(let q=0;q<4;q++){
+          const iv=b.ivs[Math.floor(Math.random()*b.ivs.length)]%12;
+          AudioEngine.noteAt(t+q*beat+0.001,36+((b.pc+iv)%12),beat*0.9);
+        }
+    }
+    if(state.progPlay==='arp'&&midis.length){
+      const asc=[...midis].sort((a,b)=>a-b);
+      for(let k=0;k<8;k++){
+        const m=asc[arpIndex(k,asc.length,state.progArpMode)];
+        const t0=i*bar+k*(TPQ/2);
+        events.push({tick:t0,on:true,note:m,vel:k%2===0?100:88});
+        events.push({tick:t0+TPQ/2-30,on:false,note:m});
+      }
+    }else{
+      midis.forEach((m,j)=>{
+        events.push({tick:i*bar+j*10,on:true,note:m,vel:96});
+        events.push({tick:(i+1)*bar-20,on:false,note:m});
+      });
+    }
   });
-  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:15;   // GM guitar / bass / dulcimer
+  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:state.instrument==='piano'?0:state.instrument==='banjo'?105:15;   // GM guitar/bass/piano/banjo/dulcimer
   const scName=SCALES.find(s=>s.id===state.scale).name;
   const name=safeName(`progression-${nn(state.key,flatsFor(state.key,scaleObj().steps))}-${scName}-${state.tempo}bpm`)+'.mid';
   downloadMidi(midiFile(events,state.tempo,program),name);
@@ -2253,12 +2656,22 @@ function exportArpMidi(){
     events.push({tick:i*TPQ,on:true,note:e.midi,vel:e.acc?104:88});
     events.push({tick:i*TPQ+TPQ-40,on:false,note:e.midi});
   });
-  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:15;
+  const program=state.instrument==='guitar'?25:state.instrument==='bass'?33:state.instrument==='piano'?0:state.instrument==='banjo'?105:15;
   const steps=SCALES.find(x=>x.id===state.exScale);
   const name=safeName(`arp-drill-${nn(state.exRoot,flatsFor(state.exRoot,steps.steps))}-${steps.name}-${state.arpInv}-${state.arpPat}${state.arpSkip?'-skip':''}-${state.tempo}bpm`)+'.mid';
   downloadMidi(midiFile(events,state.tempo,program),name);
 }
+function syncProgPlayCtls(){
+  const pm=document.getElementById('prog-playmode');
+  const am=document.getElementById('prog-arpmode');
+  if(!pm)return;
+  pm.value=state.progPlay;
+  am.value=state.progArpMode;
+  document.getElementById('prog-arpmode-ctl').hidden=state.progPlay!=='arp';
+  document.getElementById('prog-bassroot').value=state.bassMode||'off';
+}
 function syncAudioCtls(){
+  syncProgPlayCtls();
   ['prog','arp'].forEach(p=>{
     const g=id=>document.getElementById(p+'-'+id);
     if(!g('voice'))return;
@@ -2313,8 +2726,8 @@ function progPayload(){
     instrument:state.instrument,key:state.key,scale:state.scale,seventh:state.seventh,
     posGuitar:state.posGuitar,posBass:state.posBass,
     region:state.region,
-    slots:state.slots.map(s=>({degree:s.degree,inv:s.inv,ctype:s.ctype||'seventh',pos:s.pos,region:s.region||'any',sub:s.sub||'none'})),
-    tempo:state.tempo,voice:state.voice,rhythm:state.rhythm};
+    slots:state.slots.map(s=>({degree:s.degree,inv:s.inv,ctype:s.ctype||'seventh',pos:s.pos,region:s.region||'any',sub:s.sub||'none',pqual:s.pqual||'maj',pext:s.pext||'none',pinv:s.pinv||0})),
+    tempo:state.tempo,voice:state.voice,rhythm:state.rhythm,progPlay:state.progPlay,progArpMode:state.progArpMode,bassMode:state.bassMode};
 }
 function validDegree(d){
   const s=String(d);
@@ -2322,7 +2735,7 @@ function validDegree(d){
 }
 function applyPayload(p){
   if(!p||!Array.isArray(p.slots)||!p.slots.length)throw new Error('not a progression file');
-  if(['guitar','bass','dulcimer'].includes(p.instrument))setInst(p.instrument);
+  if(['guitar','bass','dulcimer','banjo','piano'].includes(p.instrument))setInst(p.instrument);
   if(SCALES.find(s=>s.id===p.scale))state.scale=p.scale;
   if(Number.isInteger(p.key))state.key=((p.key%12)+12)%12;
   state.seventh=!!p.seventh;
@@ -2333,13 +2746,20 @@ function applyPayload(p){
     degree:validDegree(s.degree)?s.degree:0,
     inv:['root','third','fifth'].includes(s.inv)?s.inv:'root',
     ctype:CTYPES.some(c=>c[0]===s.ctype)?s.ctype:(s.ctype==='global'?(p.seventh?'seventh':'triad'):'seventh'),
-    pos:(s.pos&&s.pos!=='global')?s.pos:(p.instrument==='bass'?'E':p.instrument==='dulcimer'?'D':'6'),
+    pos:(s.pos&&s.pos!=='global')?s.pos:(p.instrument==='bass'?'E':p.instrument==='dulcimer'?'D':p.instrument==='banjo'?'4':'6'),
     region:REGION_MIN[s.region]!==undefined?s.region:'any',
+    pqual:PIANO_QUAL[s.pqual]?s.pqual:'maj',
+    pext:PIANO_EXT[s.pext]?s.pext:'none',
+    pinv:Number.isFinite(s.pinv)?Math.max(0,Math.min(5,Math.round(s.pinv))):0,
     sub:(s.sub&&(s.sub==='none'||SUBS.some(x=>x.id===s.sub)))?s.sub:'none'
   }));
   if(Number.isFinite(p.tempo))state.tempo=Math.min(220,Math.max(40,Math.round(p.tempo)));
   if(['pluck','triangle','sine','sawtooth','square'].includes(p.voice))state.voice=p.voice;
   if(p.rhythm==='off'||p.rhythm==='click'||BEATS.some(b=>b.id===p.rhythm))state.rhythm=p.rhythm;
+  if(p.progPlay==='chords'||p.progPlay==='arp')state.progPlay=p.progPlay;
+  if(['up','down','updown','random'].includes(p.progArpMode))state.progArpMode=p.progArpMode;
+  if(['off','whole','quarters','root5','random'].includes(p.bassMode))state.bassMode=p.bassMode;
+  else if(typeof p.bassTrack==='boolean')state.bassMode=p.bassTrack?'whole':'off';
   document.getElementById('scale-sel').value=state.scale;
   syncAudioCtls();
   setTab('prog');
@@ -2465,6 +2885,11 @@ function refreshNotesStrip(){
 }
 refreshNotesStrip();
 document.getElementById('modes-out').addEventListener('click',e=>{
+  if(e.target.closest('#modes-head')){
+    state.modesOpen=!state.modesOpen;
+    renderModes();
+    return;
+  }
   const b=e.target.closest('[data-mview]');
   if(!b)return;
   state.scRoot=parseInt(b.dataset.mroot);
@@ -2517,20 +2942,29 @@ presetSel.addEventListener('change',()=>{
   if(presetSel.value!=='')applyPreset(parseInt(presetSel.value));
 });
 document.getElementById('ex-pos-sel').addEventListener('change',e=>{
-  if(state.instrument==='guitar')state.exPosGuitar=e.target.value;else state.exPosBass=e.target.value;
+  if(state.instrument==='guitar')state.exPosGuitar=e.target.value;else if(state.instrument==='banjo')state.exPosBanjo=e.target.value;else state.exPosBass=e.target.value;
   render();
 });
 
 document.getElementById('inst-guitar').addEventListener('click',()=>{setInst('guitar')});
 document.getElementById('inst-bass').addEventListener('click',()=>{setInst('bass')});
 document.getElementById('inst-dulc').addEventListener('click',()=>{setInst('dulcimer')});
+document.getElementById('inst-banjo').addEventListener('click',()=>{setInst('banjo')});
+document.getElementById('inst-piano').addEventListener('click',()=>{setInst('piano')});
 function setInst(i){
   if(AudioEngine.playing)AudioEngine.stop();
   const gp=['6','5','4'],bp=['E','A','Espread'];
   state.slots.forEach(s=>{
     if(i==='bass'){s.pos=bp[Math.max(0,gp.indexOf(s.pos))]||'E';}
     else if(i==='guitar'){s.pos=gp[Math.max(0,bp.indexOf(s.pos))]||'6';}
-    else{s.pos='D';}
+    else if(i==='dulcimer'){s.pos='D';}
+    else if(i==='banjo'){s.pos=['4','3'].includes(s.pos)?s.pos:'4';}
+    if(i==='piano'&&(!PIANO_QUAL[s.pqual]||!PIANO_EXT[s.pext])){
+      const def=pianoDefaults(s.degree);
+      if(!PIANO_QUAL[s.pqual])s.pqual=def.pqual;
+      if(!PIANO_EXT[s.pext])s.pext='none';
+      if(s.pinv===undefined)s.pinv=0;
+    }
   });
   state.instrument=i;
   populateTuningSel();
@@ -2539,6 +2973,8 @@ function setInst(i){
   document.getElementById('inst-guitar').classList.toggle('on',i==='guitar');
   document.getElementById('inst-bass').classList.toggle('on',i==='bass');
   document.getElementById('inst-dulc').classList.toggle('on',i==='dulcimer');
+  document.getElementById('inst-banjo').classList.toggle('on',i==='banjo');
+  document.getElementById('inst-piano').classList.toggle('on',i==='piano');
   render();
 }
 const TABS=['lib','prog','scales','ex','find'];
@@ -2554,6 +2990,7 @@ function setTab(t){
 }
 document.getElementById('lib-pos-sel').addEventListener('change',e=>{
   if(state.instrument==='guitar')state.libPosGuitar=e.target.value;
+  else if(state.instrument==='banjo')state.libPosBanjo=e.target.value;
   else state.libPosBass=e.target.value;
   renderLibrary();
 });
@@ -2607,19 +3044,37 @@ document.getElementById('slots').addEventListener('click',e=>{
   }
   if(e.target.id==='add-slot'){
     const dp=state.instrument==='guitar'?state.posGuitar:state.posBass;
-    state.slots.push({degree:0,inv:'root',ctype:state.seventh?'seventh':'triad',pos:dp,region:state.region,sub:'none'});render();return;
+    const def=pianoDefaults(0);
+    state.slots.push({degree:0,inv:'root',ctype:state.seventh?'seventh':'triad',pos:dp,region:state.region,sub:'none',pqual:def.pqual,pext:'none',pinv:0});render();return;
   }
   const del=e.target.closest('[data-del]');
   if(del){state.slots.splice(parseInt(del.dataset.del),1);render();}
 });
 document.getElementById('slots').addEventListener('change',e=>{
   const t=e.target;
-  if(t.dataset.deg!==undefined){state.slots[parseInt(t.dataset.deg)].degree=t.value;render();}
+  if(t.dataset.deg!==undefined){
+    const s=state.slots[parseInt(t.dataset.deg)];
+    s.degree=t.value;
+    if(state.instrument==='piano'){const def=pianoDefaults(s.degree);s.pqual=def.pqual;}
+    render();
+  }
+  if(t.dataset.pqual!==undefined){state.slots[parseInt(t.dataset.pqual)].pqual=t.value;render();}
+  if(t.dataset.pext!==undefined){state.slots[parseInt(t.dataset.pext)].pext=t.value;render();}
+  if(t.dataset.pinv!==undefined){state.slots[parseInt(t.dataset.pinv)].pinv=parseInt(t.value);renderProgression();}
   if(t.dataset.inv!==undefined){state.slots[parseInt(t.dataset.inv)].inv=t.value;renderProgression();}
   if(t.dataset.ctype!==undefined){state.slots[parseInt(t.dataset.ctype)].ctype=t.value;render();}
   if(t.dataset.pos!==undefined){state.slots[parseInt(t.dataset.pos)].pos=t.value;renderProgression();}
   if(t.dataset.region!==undefined){state.slots[parseInt(t.dataset.region)].region=t.value;renderProgression();}
 });
+{
+  const pm=document.getElementById('prog-playmode');
+  const am=document.getElementById('prog-arpmode');
+  const amc=document.getElementById('prog-arpmode-ctl');
+  pm.addEventListener('change',()=>{state.progPlay=pm.value;amc.hidden=state.progPlay!=='arp';});
+  am.addEventListener('change',()=>{state.progArpMode=am.value;});
+  const bt=document.getElementById('prog-bassroot');
+  bt.addEventListener('change',()=>{state.bassMode=bt.value;});
+}
 const regionSel=document.getElementById('region-sel');
 regionSel.innerHTML=REGIONS.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
 regionSel.addEventListener('change',()=>{state.region=regionSel.value;render();});
@@ -2649,20 +3104,23 @@ document.getElementById('dulc-not-seg').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
   state.dulcNotation=b.dataset.not;
   syncDulcNotation();
-  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,n:state.dulcNotation}));}catch(e2){}
+  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,j:state.tuningBanjo,n:state.dulcNotation}));}catch(e2){}
   render();
 });
 function populateTuningSel(){
+  tuningSel.hidden=state.instrument==='piano';
+  if(state.instrument==='piano')return;
   const list=TUNINGS[state.instrument];
-  const cur=state.instrument==='guitar'?state.tuningGuitar:state.instrument==='bass'?state.tuningBass:state.tuningDulc;
+  const cur=state.instrument==='guitar'?state.tuningGuitar:state.instrument==='bass'?state.tuningBass:state.instrument==='banjo'?state.tuningBanjo:state.tuningDulc;
   tuningSel.innerHTML=list.map(t=>`<option value="${t.id}"${t.id===cur?' selected':''}>${t.name}</option>`).join('');
 }
 tuningSel.addEventListener('change',()=>{
   if(state.instrument==='guitar')state.tuningGuitar=tuningSel.value;
   else if(state.instrument==='bass')state.tuningBass=tuningSel.value;
+  else if(state.instrument==='banjo')state.tuningBanjo=tuningSel.value;
   else state.tuningDulc=tuningSel.value;
   applyTuning();
-  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,n:state.dulcNotation}));}catch(e){}
+  try{localStorage.setItem('mast_tuning',JSON.stringify({g:state.tuningGuitar,b:state.tuningBass,d:state.tuningDulc,j:state.tuningBanjo,n:state.dulcNotation}));}catch(e){}
   if(AudioEngine.playing)AudioEngine.stop();
   render();
 });
@@ -2671,6 +3129,7 @@ try{
   if(TUNINGS.guitar.some(t=>t.id===tv.g))state.tuningGuitar=tv.g;
   if(TUNINGS.bass.some(t=>t.id===tv.b))state.tuningBass=tv.b;
   if(TUNINGS.dulcimer.some(t=>t.id===tv.d))state.tuningDulc=tv.d;
+  if(TUNINGS.banjo.some(t=>t.id===tv.j))state.tuningBanjo=tv.j;
   if(tv.n==='trad'||tv.n==='seq')state.dulcNotation=tv.n;
 }catch(e){}
 applyTuning();
