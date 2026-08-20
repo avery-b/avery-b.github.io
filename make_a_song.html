@@ -2214,6 +2214,22 @@ function renderFinder(){
 
 /* ================= genre presets ================= */
 const PRESETS=[
+  // ——— Common progressions ———
+  {genre:'Common progressions', name:'I – IV – V · three-chord bedrock (rock, blues, country)', scale:'major', seventh:false, degrees:[0,3,4]},
+  {genre:'Common progressions', name:'I – V – vi – IV · the four magic chords (pop axis)',      scale:'major', seventh:false, degrees:[0,4,5,3]},
+  {genre:'Common progressions', name:'vi – IV – I – V · the axis, minor side (somber pop)',     scale:'major', seventh:false, degrees:[5,3,0,4]},
+  {genre:'Common progressions', name:"I – vi – IV – V · doo-wop / '50s progression",            scale:'major', seventh:false, degrees:[0,5,3,4]},
+  {genre:'Common progressions', name:'IV – V – I – vi · cyclical axis flip (never resolves)',   scale:'major', seventh:false, degrees:[3,4,0,5]},
+  {genre:'Common progressions', name:'ii – V – I · the jazz cadence',                           scale:'major', seventh:true,  degrees:[1,4,0]},
+  {genre:'Common progressions', name:'vi – ii – V – I · circle progression (I Got Rhythm)',     scale:'major', seventh:true,  degrees:[5,1,4,0]},
+  {genre:'Common progressions', name:'I – V – vi – iii – IV – I · Pachelbel canon',             scale:'major', seventh:false, degrees:[0,4,5,2,3,0]},
+  {genre:'Common progressions', name:'12-bar blues · I7 – IV7 – V7 skeleton',                   scale:'major', seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
+  {genre:'Common progressions', name:'vi – V – IV – III7 · Andalusian descent (Sultans of Swing)', scale:'major', seventh:false, degrees:[5,4,3,'b:III7']},
+  {genre:'Common progressions', name:'i – ♭VII – ♭VI – ♭VII · minor climb (Rolling in the Deep)', scale:'nminor', seventh:false, degrees:[0,6,5,6]},
+  {genre:'Common progressions', name:'I – IV – iv – I · borrowed-iv fade (bittersweet)',        scale:'major', seventh:false, degrees:[0,3,'b:iv',0]},
+  {genre:'Common progressions', name:'♭VI – ♭VII – I · the Mario cadence (triumphant)',         scale:'major', seventh:false, degrees:['b:bVI','b:bVII',0]},
+  {genre:'Common progressions', name:'IΔ7 – ♭IIΔ7 · phrygian shadow (Everything in Its Right Place)', scale:'major', seventh:true, degrees:[0,'b:bII']},
+  {genre:'Common progressions', name:'I – III7 – IV – iv · the Creep progression',              scale:'major', seventh:false, degrees:[0,'b:III7',3,'b:iv']},
   // ——— Alternative ———
   {genre:'Alternative', name:'E-Pro — Beck', key:4, scale:'mixo', seventh:false, degrees:[0,6,3]},
   {genre:'Alternative', name:'Feel The Pain — Dinosaur Jr.', key:0, scale:'major', seventh:false, degrees:[0,3,1,4,2,5]},
