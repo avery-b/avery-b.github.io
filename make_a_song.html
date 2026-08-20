@@ -2215,8 +2215,8 @@ function renderFinder(){
 /* ================= genre presets ================= */
 const PRESETS=[
   // ——— Alternative ———
-  {genre:'Alternative', name:'Holland, 1945 — Neutral Milk Hotel', key:2, scale:'major', seventh:false, degrees:[0,3,4,0]},
-  {genre:'Alternative', name:'Just Like Heaven — Dinosaur Jr.', key:9,    scale:'major', seventh:false, degrees:[0,4,1,3]},
+  {genre:'Alternative', name:'E-Pro — Beck', key:4, scale:'mixo', seventh:false, degrees:[0,6,3]},
+  {genre:'Alternative', name:'Feel The Pain — Dinosaur Jr.', key:0, scale:'major', seventh:false, degrees:[0,3,1,4,2,5]},
   {genre:'Alternative', name:'Cut Your Hair — Pavement', key:7,           scale:'major', seventh:false, degrees:[4,3,0,5]},
   {genre:'Alternative', name:'12:51 — The Strokes', key:4,                scale:'major', seventh:false, degrees:[0,3,1,4,'b:iv',0]},
   {genre:'Alternative', name:'Close to Me — The Cure', key:11,             scale:'major', seventh:false, degrees:[0,2,0,1,5,4]},
@@ -2227,32 +2227,24 @@ const PRESETS=[
   {genre:'Dream pop', name:"I Follow You — Melody's Echo Chamber", key:0,           scale:'major', seventh:true,  degrees:[1,4,2,5]},
   {genre:'Dream pop', name:'Lemon Glow — Beach House', key:0,                       scale:'major', seventh:true,  degrees:[2,3,0]},
   // ——— Metal ———
-  {genre:'Metal', name:'Paranoid — Black Sabbath', key:4,              scale:'nminor',   seventh:false, degrees:[0,5,6,0]},
+  {genre:'Metal', name:'Lateralus — TOOL', key:2, scale:'nminor', seventh:false, degrees:[0,2,3,6]},
   {genre:'Metal', name:"War Pigs / Luke's Wall — Black Sabbath", key:4,scale:'nminor',   seventh:false, degrees:[0,6]},
-  {genre:'Metal', name:'Sweet Leaf — Black Sabbath', key:9,            scale:'nminor',   seventh:false, degrees:[0,2,3]},
+  {genre:'Metal', name:'Bleed — Meshuggah', key:5, scale:'nminor', seventh:false, degrees:[0]},
   {genre:'Metal', name:'Blood and Thunder — Mastodon', key:2,          scale:'phrygian', seventh:false, degrees:[0,1,0,6]},
   {genre:'Metal', name:'Green Machine — Kyuss', key:0,                 scale:'nminor',   seventh:false, degrees:[0,5,6,2]},
   // ——— Psychedelic rock ———
   {genre:'Psychedelic rock', name:'Voodoo Child (Slight Return) — Jimi Hendrix', key:4, scale:'major', seventh:false, degrees:[0,'b:bVI','b:bVII']},
   {genre:'Psychedelic rock', name:'Sunshine of Your Love — Cream', key:2,             scale:'major',  seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:bVII','b:IV7']},
-  {genre:'Psychedelic rock', name:'Let It Happen — Tame Impala', key:1,               scale:'hminor', seventh:false, degrees:[5,3,4]},
-  {genre:'Psychedelic rock', name:'Elephant — Tame Impala', key:2,                    scale:'dorian', seventh:false, degrees:[0,2,3,0]},
+  {genre:'Psychedelic rock', name:'Honey — King Gizzard & The Lizard Wizard', key:6, scale:'major', seventh:false, degrees:[0,'b:I7','b:bIII','b:bVII',0,3]},
+  {genre:'Psychedelic rock', name:'Iron Lung — King Gizzard & The Lizard Wizard', key:9, scale:'nminor', seventh:true, degrees:[5,0]},
   {genre:'Psychedelic rock', name:'Ladies and Gentlemen We Are Floating in Space — Spiritualized', key:2, scale:'major', seventh:false, degrees:[0,4,5,2,3,0]},
   {genre:'Psychedelic rock', name:'Feeling Yourself Disintegrate — The Flaming Lips', key:4, scale:'major', seventh:false, degrees:[0,3,0,2,1,4]},
   // ——— IDM ———
-  {genre:'IDM', name:'Avril 14th — Aphex Twin', key:8,      scale:'major',  seventh:false, degrees:[0,3,5,1,4]},
+  {genre:'IDM', name:'Black Sands — Bonobo', key:0, scale:'nminor', seventh:true, degrees:[4,5,4,0,5,0]},
   {genre:'IDM', name:'Flim — Aphex Twin', key:10,            scale:'major',  seventh:false, degrees:[0,2,3,5,1]},
   {genre:'IDM', name:'Xtal — Aphex Twin', key:10,            scale:'major',  seventh:false, degrees:[0,5,3,4]},
   {genre:'IDM', name:'Ageispolis — Aphex Twin', key:5,      scale:'dorian', seventh:true,  degrees:[0,3]},
   {genre:'IDM', name:'Roygbiv — Boards of Canada', key:9,   scale:'mixo',   seventh:false, degrees:[0,6,3,6]},
-  // ——— Blues ———
-  {genre:'Blues', name:"Smokestack Lightnin' — Howlin' Wolf", key:4,        scale:'major', seventh:true, degrees:['b:I7']},
-  {genre:'Blues', name:"Spoonful — Howlin' Wolf", key:4,                    scale:'major', seventh:true, degrees:['b:I7']},
-  {genre:'Blues', name:"Killing Floor — Howlin' Wolf", key:9,               scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
-  {genre:'Blues', name:"Evil (Is Going On) — Howlin' Wolf", key:7,          scale:'major', seventh:true, degrees:['b:I7','b:I7','b:IV7','b:I7',4,'b:I7']},
-  {genre:'Blues', name:"Little Red Rooster — Howlin' Wolf", key:9,          scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7','b:IV7',4,'b:I7']},
-  {genre:'Blues', name:"How Many More Years — Howlin' Wolf", key:7,         scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7',4]},
-  {genre:'Blues', name:"Sitting On Top Of The World — Howlin' Wolf", key:5, scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:siv7','b:VI7','b:II7',4]},
   // ——— Jazz ———
   {genre:'Jazz', name:'Take Five — Dave Brubeck', key:3,                 scale:'nminor', seventh:true,  degrees:[0,4]},
   {genre:'Jazz', name:'Song For My Father — Horace Silver', key:8,       scale:'major',  seventh:true,  degrees:[5,4,3,'b:III7']},
@@ -2280,10 +2272,14 @@ function applyPreset(idx){
   state.seventh=p.seventh;
   const dp=state.instrument==='guitar'?state.posGuitar:state.posBass;
   state.slots=p.degrees.map(d=>{
-    const s={degree:d,inv:'root',ctype:p.seventh?'seventh':'triad',pos:dp,region:state.region,sub:'none',pinv:0};
+    const bidP=String(d).startsWith('b:')?String(d).slice(2):null;
+    const bbP=bidP?BORROWED.find(x=>x.id===bidP):null;
+    const forceSev=!!(bbP&&['I7','II7','III7','IV7','VI7','siv7'].includes(bidP));
+    const s={degree:d,inv:'root',ctype:(p.seventh||forceSev)?'seventh':'triad',pos:dp,region:state.region,sub:'none',pinv:0};
     const def=pianoDefaults(d);
     s.pqual=def.pqual;
     s.pext='none';
+    if(forceSev&&!p.seventh){s.pext=bbP.sevIv===9?'6':(bbP.sevIv===11?'M7':'m7');}
     if(p.seventh&&!String(d).startsWith('b:')){
       const st=diatonicType(scaleObj().steps,parseInt(d),'seventh');
       const sv=st.tones[3][0];
