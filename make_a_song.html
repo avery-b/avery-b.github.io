@@ -810,7 +810,9 @@ function flatsFor(keyPc,steps){
   if(steps.length===7){
     let f=0,s=0;
     steps.forEach((st,d)=>{const a=st-MAJ_REF[d];if(a<0)f++;else if(a>0)s++;});
-    return f>s;
+    if(f!==s)return f>s;
+    const pcs=steps.map(st=>(keyPc+st)%12);
+    return pcs.includes(10)&&!pcs.includes(6);   // e.g. F major spells B♭, not A♯
   }
   return steps.includes(3);                        // minor pent / blues
 }
@@ -1296,20 +1298,25 @@ function renderLibrary(){
 /* ================= builder view ================= */
 function scaleObj(){return SCALES.find(s=>s.id===state.scale);}
 const BORROWED=[
-  {id:'iv',  off:5, minor:true,  sevIv:10, rnT:'iv',  rn7:'iv7',   sufT:'m', suf7:'m7',  flat:false},
-  {id:'v',   off:7, minor:true,  sevIv:10, rnT:'v',   rn7:'v7',    sufT:'m', suf7:'m7',  flat:false},
-  {id:'bII', off:1, minor:false, sevIv:11, rnT:'♭II', rn7:'♭IIΔ7', sufT:'',  suf7:'maj7',flat:true},
-  {id:'bIII',off:3, minor:false, sevIv:11, rnT:'♭III',rn7:'♭IIIΔ7',sufT:'',  suf7:'maj7',flat:true},
-  {id:'bVI', off:8, minor:false, sevIv:11, rnT:'♭VI', rn7:'♭VIΔ7', sufT:'',  suf7:'maj7',flat:true},
-  {id:'bVII',off:10,minor:false, sevIv:10, rnT:'♭VII',rn7:'♭VII7', sufT:'',  suf7:'7',   flat:true},
-  {id:'I7',  off:0, minor:false, sevIv:10, rnT:'I',   rn7:'I7',    sufT:'',  suf7:'7',   flat:false},
-  {id:'II7', off:2, minor:false, sevIv:10, rnT:'II',  rn7:'II7',   sufT:'',  suf7:'7',   flat:false},
-  {id:'IV7', off:5, minor:false, sevIv:10, rnT:'IV',  rn7:'IV7',   sufT:'',  suf7:'7',   flat:false},
+  {id:'iv',  off:5, minor:true,  sevIv:10, rnT:'iv',  rn7:'iv7',   sufT:'m', suf7:'m7',  flat:false, mood:'bittersweet'},
+  {id:'v',   off:7, minor:true,  sevIv:10, rnT:'v',   rn7:'v7',    sufT:'m', suf7:'m7',  flat:false, mood:'muted'},
+  {id:'bII', off:1, minor:false, sevIv:11, rnT:'♭II', rn7:'♭IIΔ7', sufT:'',  suf7:'maj7',flat:true,  mood:'dramatic'},
+  {id:'bIII',off:3, minor:false, sevIv:11, rnT:'♭III',rn7:'♭IIIΔ7',sufT:'',  suf7:'maj7',flat:true,  mood:'bold'},
+  {id:'bVI', off:8, minor:false, sevIv:11, rnT:'♭VI', rn7:'♭VIΔ7', sufT:'',  suf7:'maj7',flat:true,  mood:'epic'},
+  {id:'bVII',off:10,minor:false, sevIv:10, rnT:'♭VII',rn7:'♭VII7', sufT:'',  suf7:'7',   flat:true,  mood:'anthemic'},
+  {id:'I7',  off:0, minor:false, sevIv:10, rnT:'I',   rn7:'I7',    sufT:'',  suf7:'7',   flat:false, mood:'bluesy'},
+  {id:'II7', off:2, minor:false, sevIv:10, rnT:'II',  rn7:'II7',   sufT:'',  suf7:'7',   flat:false, mood:'eager'},
+  {id:'IV7', off:5, minor:false, sevIv:10, rnT:'IV',  rn7:'IV7',   sufT:'',  suf7:'7',   flat:false, mood:'gritty'},
+  {id:'iio', off:2, minor:true,  fifth:6, sevIv:10, rnT:'ii°', rn7:'iiø7',  sufT:'dim', suf7:'m7♭5', flat:false, mood:'wistful'},
+  {id:'siv7',off:6, minor:true,  fifth:6, sevIv:9,  rnT:'♯iv°',rn7:'♯iv°7', sufT:'dim', suf7:'°7',   flat:false, mood:'tense'},
+  {id:'III7',off:4, minor:false, sevIv:10, rnT:'III', rn7:'III7',  sufT:'',  suf7:'7',   flat:false, mood:'yearning'},
+  {id:'VI7', off:9, minor:false, sevIv:10, rnT:'VI',  rn7:'VI7',   sufT:'',  suf7:'7',   flat:false, mood:'sly'},
 ];
 function borrowedChord(id,sev){
   if(sev===undefined)sev=state.seventh;
   const b=BORROWED.find(x=>x.id===id);
-  const tones=b.minor?[[0,'R'],[3,'b3'],[7,'5']]:[[0,'R'],[4,'3'],[7,'5']];
+  const f=b.fifth??7;
+  const tones=b.minor?[[0,'R'],[3,'b3'],[f,f===6?'b5':'5']]:[[0,'R'],[4,'3'],[f,f===6?'b5':'5']];
   const full=sev?tones.concat([[b.sevIv,b.sevIv===11?'7':'b7']]):tones;
   const pc=(state.key+b.off)%12;
   const flat=b.flat||flatsFor(state.key,scaleObj().steps);
@@ -1372,14 +1379,14 @@ function diatonicType(steps,d,type){
   return {rootOffset:base%12,tones,suffix,rn};
 }
 function extendBorrowed(b,type){
-  const t=b.minor?3:4, f=7, s=b.sevIv;
-  const tri=[[0,'R'],[t,b.minor?'b3':'3'],[7,'5']];
+  const t=b.minor?3:4, f=b.fifth??7, s=b.sevIv;
+  const tri=[[0,'R'],[t,b.minor?'b3':'3'],[f,f===6?'b5':'5']];
   if(type==='seventh')return {tones:tri.concat([[s,s===11?'7':'b7']]),suffix:b.suf7,rn:b.rn7};
   if(type==='ninth')return {tones:[[0,'R'],[t,tri[1][1]],[s,s===11?'7':'b7'],[2,'9']],
     suffix:(s===11?(b.minor?'m(maj9)':'maj9'):(b.minor?'m9':'9')),rn:b.rn7.replace('7','9')};
   if(type==='thirteenth')return {tones:[[0,'R'],[t,tri[1][1]],[s,s===11?'7':'b7'],[9,'13']],
     suffix:(s===11?'maj13':(b.minor?'m13':'13')),rn:b.rn7.replace('7','13')};
-  if(type==='tenth')return {tones:[[0,'R'],[7,'5'],[t+12,b.minor?'b10':'10']],
+  if(type==='tenth')return {tones:[[0,'R'],[f,f===6?'b5':'5'],[t+12,b.minor?'b10':'10']],
     suffix:(b.minor?'m':'')+'(10th)',rn:b.rnT+'(10)'};
   if(type==='sus')return {tones:[[0,'R'],[5,'4'],[7,'5']],suffix:'sus4',rn:b.rnT+'sus'};
   return {tones:tri,suffix:b.sufT,rn:b.rnT};
@@ -1387,30 +1394,48 @@ function extendBorrowed(b,type){
 const REGIONS=[['any','Anywhere'],['above5','Above 5th fret'],['above7','Above 7th fret'],['above12','Above 12th fret']];
 const REGION_MIN={any:0,above5:5,above7:7,above12:12};
 const SUBS=[
-  {id:'mmaj7', label:'mMaj7 — melodic minor i',
+  {id:'mmaj7', mood:'noir', label:'mMaj7 — melodic minor i',
    t7:[[0,'R'],[3,'b3'],[7,'5'],[11,'7']], s7:'m(maj7)',
    t3:[[0,'R'],[3,'b3'],[7,'5']],          s3:'m'},
-  {id:'7s11', label:'7♯11 — lydian dominant',
+  {id:'7s11', mood:'luminous', label:'7♯11 — lydian dominant',
    t7:[[0,'R'],[4,'3'],[6,'#11'],[10,'b7']], s7:'7♯11',
    t3:[[0,'R'],[4,'3'],[6,'#11']],           s3:'(♭5)'},
-  {id:'7s5', label:'7♯5 — altered dominant',
+  {id:'7s5', mood:'restless', label:'7♯5 — altered dominant',
    t7:[[0,'R'],[4,'3'],[8,'#5'],[10,'b7']], s7:'7♯5',
    t3:[[0,'R'],[4,'3'],[8,'#5']],           s3:'+'},
-  {id:'maj7s5', label:'maj7♯5 — lydian augmented',
+  {id:'maj7s5', mood:'dreamy', label:'maj7♯5 — lydian augmented',
    t7:[[0,'R'],[4,'3'],[8,'#5'],[11,'7']], s7:'maj7♯5',
    t3:[[0,'R'],[4,'3'],[8,'#5']],          s3:'+'},
-  {id:'q4', label:'Quartal — stacked 4ths',
+  {id:'q4', mood:'open', label:'Quartal — stacked 4ths',
    t7:[[0,'R'],[5,'4'],[10,'b7'],[15,'b3']], s7:'(4ths)',
    t3:[[0,'R'],[5,'4'],[10,'b7']],           s3:'(4ths)'},
-  {id:'q5', label:'Quintal — stacked 5ths',
+  {id:'q5', mood:'vast', label:'Quintal — stacked 5ths',
    t7:[[0,'R'],[7,'5'],[14,'9'],[21,'13']], s7:'(5ths)',
    t3:[[0,'R'],[7,'5'],[14,'9']],           s3:'(5ths)'},
-  {id:'tritone', label:'Tritone sub — dom7 a ♭5 away', shift:6,
+  {id:'tritone', mood:'sly', label:'Tritone sub — dom7 a ♭5 away', shift:6,
    t7:[[0,'R'],[4,'3'],[7,'5'],[10,'b7']], s7:'7',
    t3:[[0,'R'],[4,'3'],[7,'5']],           s3:''},
-  {id:'dim7', label:'Diminished 7 — passing chord',
+  {id:'dim7', mood:'tense', label:'Diminished 7 — passing chord',
    t7:[[0,'R'],[3,'b3'],[6,'b5'],[9,'bb7']], s7:'dim7',
    t3:[[0,'R'],[3,'b3'],[6,'b5']],           s3:'dim'},
+  {id:'add9', mood:'airy', label:'Add 9 — no seventh',
+   t7:[[0,'R'],[4,'3'],[7,'5'],[14,'9']], s7:'add9',
+   t3:[[0,'R'],[4,'3'],[14,'9']],          s3:'add9'},
+  {id:'69', mood:'lush', label:'6/9 — sixth and ninth',
+   t7:[[0,'R'],[4,'3'],[9,'6'],[14,'9']], s7:'6/9',
+   t3:[[0,'R'],[9,'6'],[14,'9']],          s3:'6/9'},
+  {id:'m11', mood:'hazy', label:'Minor 11 — stacked haze',
+   t7:[[0,'R'],[3,'b3'],[10,'b7'],[17,'11']], s7:'m11',
+   t3:[[0,'R'],[10,'b7'],[17,'11']],          s3:'m11'},
+  {id:'susb9', mood:'dusky', label:'Sus♭9 — phrygian color',
+   t7:[[0,'R'],[5,'4'],[7,'5'],[13,'b9']], s7:'sus♭9',
+   t3:[[0,'R'],[5,'4'],[13,'b9']],          s3:'sus♭9'},
+  {id:'maj7b5', mood:'floating', label:'Maj7♭5 — lydian glass',
+   t7:[[0,'R'],[4,'3'],[6,'b5'],[11,'7']], s7:'maj7♭5',
+   t3:[[0,'R'],[6,'b5'],[11,'7']],          s3:'maj7♭5'},
+  {id:'alt', mood:'volatile', label:'7♯9 — altered bite',
+   t7:[[0,'R'],[4,'3'],[10,'b7'],[15,'#9']], s7:'7♯9',
+   t3:[[0,'R'],[4,'3'],[15,'#9']],           s3:'(♯9)'},
 ];
 const pretty=r=>r.replace('bb','♭♭').replace('b','♭').replace('#','♯');
 function slotType(slot){
@@ -1512,6 +1537,7 @@ function pianoDefaults(deg){
   const d=String(deg);
   if(d.startsWith('b:')){
     const b=BORROWED.find(x=>x.id===d.slice(2));
+    if(b&&b.fifth===6)return {pqual:'dim',pext:'none'};
     return {pqual:(b&&b.minor)?'min':'maj',pext:'none'};
   }
   const info=diatonicType(scaleObj().steps,parseInt(d),'triad');
@@ -1565,11 +1591,11 @@ function renderSlots(){
       const pc=(state.key+scaleObj().steps[deg])%12;
       degOpts+=`<option value="${deg}"${String(slot.degree)===String(deg)?' selected':''}>• ${deg+1} (${nn(pc,fl)})</option>`;
     }
-    if(degIsBorrowed){
-      const b=BORROWED.find(x=>x.id===String(slot.degree).slice(2));
+    degOpts+='<optgroup label="Borrowed & secondary">'+BORROWED.map(b=>{
       const pc=(state.key+b.off)%12;
-      degOpts+=`<option value="${slot.degree}" selected>• ${b.rnT} — ${nn(pc,b.flat||fl)} (borrowed)</option>`;
-    }
+      const sel=String(slot.degree)===('b:'+b.id);
+      return `<option value="b:${b.id}"${sel?' selected':''}>• ${b.rnT} — ${nn(pc,b.flat||fl)} · ${b.mood}</option>`;
+    }).join('')+'</optgroup>';
     if(state.instrument==='piano'){
       if(!PIANO_QUAL[slot.pqual]||!PIANO_EXT[slot.pext]){
         const def=pianoDefaults(slot.degree);
@@ -1592,7 +1618,7 @@ function renderSlots(){
         .concat(SUBS.map(sd=>{
           const diff=subDiff(base,sd);
           const sel=slot.sub===sd.id;
-          return `<div class="dd-opt${sel?' sel':''}" role="option" data-si="${idx}" data-val="${sd.id}" aria-selected="${sel}"><span>${sd.label} <span class="diff">${diff}</span></span></div>`;
+          return `<div class="dd-opt${sel?' sel':''}" role="option" data-si="${idx}" data-val="${sd.id}" aria-selected="${sel}"><span>${sd.label} <span class="diff">${sd.mood} · ${diff}</span></span></div>`;
         })).join('');
       d.innerHTML=`
         <div class="shead"><span>Chord ${idx+1}</span>
@@ -1646,7 +1672,7 @@ function renderSlots(){
       .concat(SUBS.map(sd=>{
         const diff=subDiff(base,sd);
         const sel=slot.sub===sd.id;
-        return `<div class="dd-opt${sel?' sel':''}" role="option" data-si="${idx}" data-val="${sd.id}" aria-selected="${sel}"><span>${sd.label} <span class="diff">${diff}</span></span></div>`;
+        return `<div class="dd-opt${sel?' sel':''}" role="option" data-si="${idx}" data-val="${sd.id}" aria-selected="${sel}"><span>${sd.label} <span class="diff">${sd.mood} · ${diff}</span></span></div>`;
       })).join('');
     const subDd=`
       <div class="dd">
@@ -2188,67 +2214,65 @@ function renderFinder(){
 
 /* ================= genre presets ================= */
 const PRESETS=[
-  {genre:'Alternative', name:'I – V – vi – IV (anthem)',            scale:'major',  seventh:false, degrees:[0,4,5,3]},
-  {genre:'Alternative', name:'vi – IV – I – V (pop-punk axis)',     scale:'major',  seventh:false, degrees:[5,3,0,4]},
-  {genre:'Alternative', name:'I – IV (jangle vamp)',                scale:'major',  seventh:false, degrees:[0,3]},
-  {genre:'Alternative', name:'I – iii – vi – IV (bittersweet)',     scale:'major',  seventh:false, degrees:[0,2,5,3]},
-  {genre:'Alternative', name:'IV – I – V – vi (axis flip)',         scale:'major',  seventh:false, degrees:[3,0,4,5]},
-  {genre:'Shoegaze',    name:'IΔ7 – IVΔ7 (dream vamp)',             scale:'major',  seventh:true,  degrees:[0,3]},
-  {genre:'Shoegaze',    name:'vi – IV – V – I (blissed-out)',       scale:'major',  seventh:false, degrees:[5,3,4,0]},
-  {genre:'Shoegaze',    name:'IΔ7 – II7 (lydian shimmer)',          scale:'lydian', seventh:true,  degrees:[0,1]},
-  {genre:'Shoegaze',    name:'I – iv (borrowed haze)',              scale:'major',  seventh:false, degrees:[0,'b:iv']},
-  {genre:'Shoegaze',    name:'I – ♭VI – IV (glide)',                scale:'major',  seventh:false, degrees:[0,'b:bVI',3]},
-  {genre:'Dream pop',   name:'IΔ7 – vi7 – IVΔ7 – V7 (cloud step)',  scale:'major',  seventh:true,  degrees:[0,5,3,4]},
-  {genre:'Dream pop',   name:'IΔ7 – iii7 (suspended glow)',         scale:'major',  seventh:true,  degrees:[0,2]},
-  {genre:'Dream pop',   name:'I – iv (borrowed fade)',              scale:'major',  seventh:false, degrees:[0,'b:iv']},
-  {genre:'Dream pop',   name:'ii7 – V7 – IΔ7 (soft landing)',       scale:'major',  seventh:true,  degrees:[1,4,0]},
-  {genre:'Dream pop',   name:'IΔ7 – ♭VIΔ7 (tidal)',                 scale:'major',  seventh:true,  degrees:[0,'b:bVI']},
-  {genre:'City pop',    name:'IVΔ7 – V7 – iii7 – vi7 (royal road)', scale:'major',  seventh:true,  degrees:[3,4,2,5]},
-  {genre:'City pop',    name:'ii7 – V7 – IΔ7 – vi7 (smooth cycle)', scale:'major',  seventh:true,  degrees:[1,4,0,5]},
-  {genre:'City pop',    name:'IΔ7 – II7 – ii7 – V7 (tokyo lights)', scale:'major',  seventh:true,  degrees:[0,'b:II7',1,4]},
-  {genre:'City pop',    name:'iii7 – vi7 – ii7 – V7 (full circle)', scale:'major',  seventh:true,  degrees:[2,5,1,4]},
-  {genre:'City pop',    name:'IVΔ7 – iii7 – ii7 – IΔ7 (stepdown)',  scale:'major',  seventh:true,  degrees:[3,2,1,0]},
-  {genre:'Metal',       name:'i – ♭VI – ♭VII (gallop)',             scale:'nminor', seventh:false, degrees:[0,5,6]},
-  {genre:'Metal',       name:'i – ♭II (phrygian menace)',           scale:'phrygian',seventh:false,degrees:[0,1]},
-  {genre:'Metal',       name:'i – ♭VII – ♭VI – v (aeolian descent)',scale:'nminor', seventh:false, degrees:[0,6,5,4]},
-  {genre:'Metal',       name:'i – iv – v (doom)',                   scale:'nminor', seventh:false, degrees:[0,3,4]},
-  {genre:'Metal',       name:'i – ♭VI – V (harmonic push)',         scale:'hminor', seventh:false, degrees:[0,5,4]},
-  {genre:'Metal',       name:'i – ♭III – ♭VII – ♭VI (epic)',        scale:'nminor', seventh:false, degrees:[0,2,6,5]},
-  {genre:'Psychedelic rock', name:'I – ♭VII – IV (mixolydian jam)', scale:'mixo',   seventh:false, degrees:[0,6,3]},
-  {genre:'Psychedelic rock', name:'i – IV (dorian vamp)',           scale:'dorian', seventh:false, degrees:[0,3]},
-  {genre:'Psychedelic rock', name:'i – ♭III – ♭VII – IV (dorian trip)',scale:'dorian',seventh:false,degrees:[0,2,6,3]},
-  {genre:'Psychedelic rock', name:'I – IV – ♭VII – IV (carousel)',  scale:'mixo',   seventh:false, degrees:[0,3,6,3]},
-  {genre:'Psychedelic rock', name:'I – II (lydian lift)',           scale:'lydian', seventh:false, degrees:[0,1]},
-  {genre:'IDM',         name:'i7 – ♭VIΔ7 (glass loop)',             scale:'nminor', seventh:true,  degrees:[0,5]},
-  {genre:'IDM',         name:'i7 – IV7 (dorian pulse)',             scale:'dorian', seventh:true,  degrees:[0,3]},
-  {genre:'IDM',         name:'i7 – ii7 (cold rotation)',            scale:'dorian', seventh:true,  degrees:[0,1]},
-  {genre:'IDM',         name:'vi7 – IΔ7 – ii7 (drift grid)',        scale:'major',  seventh:true,  degrees:[5,0,1]},
-  {genre:'IDM',         name:'i7 – ♭VII7 (undertow)',               scale:'nminor', seventh:true,  degrees:[0,6]},
-  {genre:'Blues',       name:'I7 – IV7 – V7 (12-bar kit)',          scale:'major',  seventh:true,  degrees:['b:I7','b:IV7',4]},
-  {genre:'Blues',       name:'12-bar skeleton (6 changes)',         scale:'major',  seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
-  {genre:'Blues',       name:'i7 – iv7 – v7 (minor blues)',         scale:'nminor', seventh:true,  degrees:[0,3,4]},
-  {genre:'Blues',       name:'V7 – IV7 – I7 (turnaround)',          scale:'major',  seventh:true,  degrees:[4,'b:IV7','b:I7']},
-  {genre:'Blues',       name:'I7 – IV7 (shuffle vamp)',             scale:'major',  seventh:true,  degrees:['b:I7','b:IV7']},
-  {genre:'Jazz',        name:'ii7 – V7 – IΔ7 (the cadence)',        scale:'major',  seventh:true,  degrees:[1,4,0]},
-  {genre:'Jazz',        name:'IΔ7 – vi7 – ii7 – V7 (rhythm changes)',scale:'major', seventh:true,  degrees:[0,5,1,4]},
-  {genre:'Jazz',        name:'iii7 – vi7 – ii7 – V7 (turnaround)',  scale:'major',  seventh:true,  degrees:[2,5,1,4]},
-  {genre:'Jazz',        name:'iiø7 – V7 – i (minor cadence)',       scale:'hminor', seventh:true,  degrees:[1,4,0]},
-  {genre:'Jazz',        name:'IΔ7 – ♭VII7 (backdoor vamp)',         scale:'major',  seventh:true,  degrees:[0,'b:bVII']},
-  {genre:'Space jazz',  name:'i(Δ7) – IV7 (melodic minor float)',   scale:'mminor', seventh:true,  degrees:[0,3]},
-  {genre:'Space jazz',  name:'♭IIIΔ7♯5 – i(Δ7) (nebula)',           scale:'mminor', seventh:true,  degrees:[2,0]},
-  {genre:'Space jazz',  name:'IΔ7 – ♭VIΔ7 – ♭IIΔ7 (planet drift)',  scale:'major',  seventh:true,  degrees:[0,'b:bVI','b:bII']},
-  {genre:'Space jazz',  name:'viø7 – IV7 (asteroid vamp)',          scale:'mminor', seventh:true,  degrees:[5,3]},
-  {genre:'Space jazz',  name:'IΔ7 – II7 (saturn orbit)',            scale:'lydian', seventh:true,  degrees:[0,1]},
-  {genre:'Afrobeat',    name:'i7 – IV7 (Lagos vamp)',               scale:'dorian', seventh:true,  degrees:[0,3]},
-  {genre:'Afrobeat',    name:'I7 – IV7 (highlife lift)',            scale:'major',  seventh:true,  degrees:['b:I7','b:IV7']},
-  {genre:'Afrobeat',    name:'i7 – ♭VII7 (afro groove)',            scale:'nminor', seventh:true,  degrees:[0,6]},
-  {genre:'Afrobeat',    name:'i7 – v7 (deep pocket)',               scale:'dorian', seventh:true,  degrees:[0,4]},
-  {genre:'Afrobeat',    name:'I – IV – V – IV (juju wheel)',        scale:'major',  seventh:false, degrees:[0,3,4,3]},
-  {genre:'Math rock',   name:'IΔ7 – iii7 – IVΔ7 (tapping bed)',     scale:'major',  seventh:true,  degrees:[0,2,3]},
-  {genre:'Math rock',   name:'I – V – II (lydian angles)',          scale:'lydian', seventh:false, degrees:[0,4,1]},
-  {genre:'Math rock',   name:'vi7 – IΔ7 – iii7 (looping cells)',    scale:'major',  seventh:true,  degrees:[5,0,2]},
-  {genre:'Math rock',   name:'i – ♭III – IV (dorian sparkle)',      scale:'dorian', seventh:false, degrees:[0,2,3]},
-  {genre:'Math rock',   name:'IΔ7 – IVΔ7 – iii7 – vi7 (glass math)',scale:'major',  seventh:true,  degrees:[0,3,2,5]},
+  // ——— Alternative ———
+  {genre:'Alternative', name:'Holland, 1945 — Neutral Milk Hotel', key:2, scale:'major', seventh:false, degrees:[0,3,4,0]},
+  {genre:'Alternative', name:'Just Like Heaven — Dinosaur Jr.', key:9,    scale:'major', seventh:false, degrees:[0,4,1,3]},
+  {genre:'Alternative', name:'Cut Your Hair — Pavement', key:7,           scale:'major', seventh:false, degrees:[4,3,0,5]},
+  {genre:'Alternative', name:'12:51 — The Strokes', key:4,                scale:'major', seventh:false, degrees:[0,3,1,4,'b:iv',0]},
+  {genre:'Alternative', name:'Close to Me — The Cure', key:11,             scale:'major', seventh:false, degrees:[0,2,0,1,5,4]},
+  // ——— Dream pop ———
+  {genre:'Dream pop', name:'Boyish — Japanese Breakfast', key:0,                    scale:'major', seventh:false, degrees:[0,2,1,4]},
+  {genre:'Dream pop', name:'Everybody Wants to Love You — Japanese Breakfast', key:7, scale:'major', seventh:false, degrees:[0,5,3,0]},
+  {genre:'Dream pop', name:'Adult Diversion — Alvvays', key:9,                      scale:'major', seventh:false, degrees:[0,5,3,1]},
+  {genre:'Dream pop', name:"I Follow You — Melody's Echo Chamber", key:0,           scale:'major', seventh:true,  degrees:[1,4,2,5]},
+  {genre:'Dream pop', name:'Lemon Glow — Beach House', key:0,                       scale:'major', seventh:true,  degrees:[2,3,0]},
+  // ——— Metal ———
+  {genre:'Metal', name:'Paranoid — Black Sabbath', key:4,              scale:'nminor',   seventh:false, degrees:[0,5,6,0]},
+  {genre:'Metal', name:"War Pigs / Luke's Wall — Black Sabbath", key:4,scale:'nminor',   seventh:false, degrees:[0,6]},
+  {genre:'Metal', name:'Sweet Leaf — Black Sabbath', key:9,            scale:'nminor',   seventh:false, degrees:[0,2,3]},
+  {genre:'Metal', name:'Blood and Thunder — Mastodon', key:2,          scale:'phrygian', seventh:false, degrees:[0,1,0,6]},
+  {genre:'Metal', name:'Green Machine — Kyuss', key:0,                 scale:'nminor',   seventh:false, degrees:[0,5,6,2]},
+  // ——— Psychedelic rock ———
+  {genre:'Psychedelic rock', name:'Voodoo Child (Slight Return) — Jimi Hendrix', key:4, scale:'major', seventh:false, degrees:[0,'b:bVI','b:bVII']},
+  {genre:'Psychedelic rock', name:'Sunshine of Your Love — Cream', key:2,             scale:'major',  seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:bVII','b:IV7']},
+  {genre:'Psychedelic rock', name:'Let It Happen — Tame Impala', key:1,               scale:'hminor', seventh:false, degrees:[5,3,4]},
+  {genre:'Psychedelic rock', name:'Elephant — Tame Impala', key:2,                    scale:'dorian', seventh:false, degrees:[0,2,3,0]},
+  {genre:'Psychedelic rock', name:'Ladies and Gentlemen We Are Floating in Space — Spiritualized', key:2, scale:'major', seventh:false, degrees:[0,4,5,2,3,0]},
+  {genre:'Psychedelic rock', name:'Feeling Yourself Disintegrate — The Flaming Lips', key:4, scale:'major', seventh:false, degrees:[0,3,0,2,1,4]},
+  // ——— IDM ———
+  {genre:'IDM', name:'Avril 14th — Aphex Twin', key:8,      scale:'major',  seventh:false, degrees:[0,3,5,1,4]},
+  {genre:'IDM', name:'Flim — Aphex Twin', key:10,            scale:'major',  seventh:false, degrees:[0,2,3,5,1]},
+  {genre:'IDM', name:'Xtal — Aphex Twin', key:10,            scale:'major',  seventh:false, degrees:[0,5,3,4]},
+  {genre:'IDM', name:'Ageispolis — Aphex Twin', key:5,      scale:'dorian', seventh:true,  degrees:[0,3]},
+  {genre:'IDM', name:'Roygbiv — Boards of Canada', key:9,   scale:'mixo',   seventh:false, degrees:[0,6,3,6]},
+  // ——— Blues ———
+  {genre:'Blues', name:"Smokestack Lightnin' — Howlin' Wolf", key:4,        scale:'major', seventh:true, degrees:['b:I7']},
+  {genre:'Blues', name:"Spoonful — Howlin' Wolf", key:4,                    scale:'major', seventh:true, degrees:['b:I7']},
+  {genre:'Blues', name:"Killing Floor — Howlin' Wolf", key:9,               scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
+  {genre:'Blues', name:"Evil (Is Going On) — Howlin' Wolf", key:7,          scale:'major', seventh:true, degrees:['b:I7','b:I7','b:IV7','b:I7',4,'b:I7']},
+  {genre:'Blues', name:"Little Red Rooster — Howlin' Wolf", key:9,          scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7','b:IV7',4,'b:I7']},
+  {genre:'Blues', name:"How Many More Years — Howlin' Wolf", key:7,         scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:I7',4]},
+  {genre:'Blues', name:"Sitting On Top Of The World — Howlin' Wolf", key:5, scale:'major', seventh:true, degrees:['b:I7','b:IV7','b:siv7','b:VI7','b:II7',4]},
+  // ——— Jazz ———
+  {genre:'Jazz', name:'Take Five — Dave Brubeck', key:3,                 scale:'nminor', seventh:true,  degrees:[0,4]},
+  {genre:'Jazz', name:'Song For My Father — Horace Silver', key:8,       scale:'major',  seventh:true,  degrees:[5,4,3,'b:III7']},
+  {genre:'Jazz', name:"Well, You Needn't — Thelonious Monk", key:5,      scale:'major',  seventh:false, degrees:[0,'b:bII']},
+  {genre:'Jazz', name:'Hackensack — Thelonious Monk', key:5,             scale:'major',  seventh:true,  degrees:[0,5,1,4]},
+  {genre:'Jazz', name:'Devil Woman — Charles Mingus', key:10,             scale:'major',  seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
+  {genre:'Jazz', name:'Goodbye Pork Pie Hat — Charles Mingus', key:3,    scale:'nminor', seventh:true,  degrees:[0,5,4,3]},
+  {genre:'Jazz', name:'Hog Calling Blues — Charles Mingus', key:10,       scale:'major',  seventh:true,  degrees:['b:I7','b:IV7','b:I7',4,'b:IV7','b:I7']},
+  // ——— Space jazz ———
+  {genre:'Space jazz', name:'Space Is the Place — Sun Ra', key:5,           scale:'dorian', seventh:true,  degrees:[0,6]},
+  {genre:'Space jazz', name:'Nuclear War — Sun Ra', key:5,                  scale:'major',  seventh:true,  degrees:[2,'b:I7',5,3]},
+  {genre:'Space jazz', name:'Tapestry From An Asteroid — Sun Ra', key:8,    scale:'major',  seventh:true,  degrees:[1,4,0]},
+  {genre:'Space jazz', name:'Springtime Again — Sun Ra', key:0,             scale:'major',  seventh:false, degrees:[0,'b:v',0,3]},
+  {genre:'Space jazz', name:'Journey In Satchidananda — Alice Coltrane', key:4, scale:'dorian', seventh:true, degrees:[0]},
+  // ——— Afrobeat ———
+  {genre:'Afrobeat', name:'Zombie — Fela Kuti', key:7,              scale:'dorian', seventh:true,  degrees:[0,2]},
+  {genre:'Afrobeat', name:'Water No Get Enemy — Fela Kuti', key:3,  scale:'dorian', seventh:true,  degrees:[0,1,4,0]},
+  {genre:'Afrobeat', name:'Expensive Shit — Fela Kuti', key:0,      scale:'dorian', seventh:true,  degrees:[0]},
+  {genre:'Afrobeat', name:'Fantastic Man — William Onyeabor', key:7, scale:'major', seventh:false, degrees:[0,1]},
+  {genre:'Afrobeat', name:'Good Name — William Onyeabor', key:5,    scale:'nminor', seventh:false, degrees:[0,3]},
 ];
 function applyPreset(idx){
   const p=PRESETS[idx];
@@ -2265,12 +2289,16 @@ function applyPreset(idx){
       const sv=st.tones[3][0];
       s.pext=sv===11?'M7':'m7';
       if(s.pqual==='dim'&&sv===9)s.pext='6';
-    }else if(p.seventh){s.pext='m7';}
+    }else if(p.seventh){
+      const b=BORROWED.find(x=>x.id===String(d).slice(2));
+      s.pext=b?(b.sevIv===9?'6':(b.sevIv===11?'M7':'m7')):'m7';
+    }
     return s;
   });
+  if(p.key!==undefined)state.key=p.key;
   // sync visible controls
   document.getElementById('scale-sel').value=p.scale;
-  render();
+  refreshStrips();
 }
 
 /* ================= audio playback ================= */
