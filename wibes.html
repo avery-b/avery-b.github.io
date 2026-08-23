@@ -166,6 +166,33 @@
             color: #666;
             white-space: nowrap;
         }
+
+        /* Photo grid */
+        .photo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .photo-grid a {
+            display: block;
+            aspect-ratio: 1 / 1;
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        .photo-grid img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .photo-grid a:hover img {
+            transform: scale(1.08);
+        }
     </style>
   </head>
   <body>
@@ -274,17 +301,16 @@
             <a href="https://www.zonenights.com/2023/03/wibes-presenta-su-nuevo-sencillo-mystic-whale-love/">Zone Nights</a><br>
 
             <h3>Photos...</h3>
-            <div style="text-align: center;">
-                <br>
-                <img class="centerImg" src="images/Wibes_6.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_7.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_8.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_9.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_1.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_2.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_3.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_4.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
-                <img class="centerImg" src="images/Wibes_5.jpg" alt="The Titular Norwegian-American Indie Pop Duo">
+            <div class="photo-grid">
+                <a href="images/Wibes_6.jpg" target="_blank"><img src="images/Wibes_6.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_7.jpg" target="_blank"><img src="images/Wibes_7.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_8.jpg" target="_blank"><img src="images/Wibes_8.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_9.jpg" target="_blank"><img src="images/Wibes_9.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_1.jpg" target="_blank"><img src="images/Wibes_1.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_2.jpg" target="_blank"><img src="images/Wibes_2.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_3.jpg" target="_blank"><img src="images/Wibes_3.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_4.jpg" target="_blank"><img src="images/Wibes_4.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
+                <a href="images/Wibes_5.jpg" target="_blank"><img src="images/Wibes_5.jpg" alt="The Titular Norwegian-American Indie Pop Duo"></a>
             </div>
         </div>      
       </div>
